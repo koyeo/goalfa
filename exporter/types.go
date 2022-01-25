@@ -1,7 +1,7 @@
 package exporter
 
 type Options struct {
-	Envs []*Env
+	Envs []*Env `json:"envs"`
 }
 
 type Env struct {
@@ -19,10 +19,26 @@ type Method struct {
 }
 
 type Field struct {
-	Name     string   `json:"name"`
-	Type     string   `json:"type"`
-	Array    bool     `json:"array"`
-	Required bool     `json:"required"`
-	Elem     []*Field `json:"elem"`
-	Children []*Field `json:"children"`
+	Name        string   `json:"name"`
+	Label       string   `json:"label"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Array       bool     `json:"array"`
+	Required    bool     `json:"required"`
+	Max         int64    `json:"max"`
+	Min         int64    `json:"min"`
+	Form        string   `json:"form"` // 表征表单的空间
+	Elem        []*Field `json:"elem"`
+	Children    []*Field `json:"children"`
+}
+
+type Validator struct {
+	Required bool
+	Max      uint64
+	Min      int64
+	Enums    []string
+}
+
+type Component struct {
+	Name string
 }

@@ -38,7 +38,10 @@ func (p Exporter) Run() {
 	})
 	// 导出描述协议
 	engine.GET("/protocol", func(c *gin.Context) {
-		c.JSON(200, p.Methods)
+		c.JSON(200, map[string]interface{}{
+			"options": p.options,
+			"methods": p.Methods,
+		})
 	})
 	go func() {
 		err := engine.Run(p.addr)

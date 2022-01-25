@@ -225,6 +225,9 @@ func (p *API) proxyHandler(handler reflect.Value) gin.HandlerFunc {
 				c.JSON(http.StatusOK, r)
 				return
 			}
+		} else {
+			c.String(http.StatusOK, "")
+			return
 		}
 		return
 	}

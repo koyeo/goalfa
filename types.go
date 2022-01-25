@@ -23,9 +23,10 @@ type Register interface {
 }
 
 type Route struct {
+	Path        string
 	Method      string
 	Prefix      string
-	Path        string
+	Description string
 	Middlewares []gin.HandlerFunc `json:"-"`
 	Children    []Route
 	Handler     interface{} `json:"-"`
