@@ -1,4 +1,4 @@
-package _api
+package buck
 
 import (
 	"github.com/gin-gonic/gin"

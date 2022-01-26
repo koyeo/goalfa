@@ -1,10 +1,11 @@
-package _api
+package buck
 
 import (
 	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/gozelle/_api/exporter"
+	"github.com/koyeo/buck/binding"
+	"github.com/koyeo/buck/exporter"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -64,7 +65,6 @@ func (p *API) Run(addr string) {
 			return
 		}
 	}
-	p.routeTable.Print()
 	if p.exporter != nil {
 		p.makeExporter()
 		p.exporter.Run()
@@ -166,21 +166,22 @@ func (p *API) registerRoutes(register Register, prefix string, routes []Route) (
 				return
 			}
 		} else {
-			p.routeTable.AddRow(v.Method, strings.Join([]string{prefix, v.Path}, ""), p.parseHandlerInfo(v.Handler))
-			p.addMethod(v.Method, strings.Join([]string{prefix, v.Path}, ""), v.handler)
+			info := p.parseHandlerInfo(v.Handler)
+			path := info.ParsePath(v.Path)
+			p.addMethod(v.Method, strings.Join([]string{prefix, path}, ""), v.Description, info, v.handler)
 			switch v.Method {
 			case http.MethodGet:
-				register.GET(v.Path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
+				register.GET(path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
 			case http.MethodPost:
-				register.POST(v.Path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
+				register.POST(path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
 			case http.MethodPut:
-				register.PUT(v.Path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
+				register.PUT(path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
 			case http.MethodDelete:
-				register.DELETE(v.Path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
+				register.DELETE(path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
 			case http.MethodHead:
-				register.HEAD(v.Path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
+				register.HEAD(path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
 			case http.MethodOptions:
-				register.OPTIONS(v.Path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
+				register.OPTIONS(path, append([]gin.HandlerFunc{p.proxyHandler(v.handler)}, v.Middlewares...)...)
 			default:
 				err = fmt.Errorf("unsupport method: %s", v.Method)
 				return
@@ -197,7 +198,7 @@ func (p *API) proxyHandler(handler reflect.Value) gin.HandlerFunc {
 		if handler.Type().NumIn() == 2 {
 			var in reflect.Value
 			var err error
-			in, err = bindJson(c, handler.Type().In(1))
+			in, err = bind(c, handler.Type().In(1))
 			if err != nil {
 				// TODO 响应 Error 报错
 				c.Error(err)
@@ -242,13 +243,14 @@ func realType(t reflect.Type) reflect.Type {
 	}
 }
 
-func bindJson(c *gin.Context, t reflect.Type) (reflect.Value, error) {
+func bind(c *gin.Context, t reflect.Type) (reflect.Value, error) {
 	ptr := t.Kind() == reflect.Ptr
 	if ptr {
 		t = realType(t)
 	}
 	in := reflect.New(t)
-	err := c.Bind(in.Interface())
+	b := binding.Default(c.Request.Method, c.ContentType())
+	err := c.MustBindWith(in.Interface(), b)
 	if err != nil {
 		return in, err
 	}
@@ -290,12 +292,12 @@ func (p API) makeExporter() {
 	p.exporter.Methods = p.methods
 }
 
-func (p *API) addMethod(method, path string, handler reflect.Value) {
-	info := p.parseHandlerInfoValue(handler)
+func (p *API) addMethod(method, path, description string, info HandlerInfo, handler reflect.Value) {
 	m := &exporter.Method{
-		Name:   info.Name,
-		Path:   path,
-		Method: method,
+		Name:        info.Name,
+		Path:        path,
+		Method:      method,
+		Description: description,
 	}
 	if handler.Type().NumIn() > 1 {
 		m.Input = exporter.ReflectFields(fmt.Sprintf("%sIn", m.Name), handler.Type().In(1))
@@ -304,5 +306,4 @@ func (p *API) addMethod(method, path string, handler reflect.Value) {
 		m.Output = exporter.ReflectFields(fmt.Sprintf("%sOut", m.Name), handler.Type().Out(0))
 	}
 	p.methods = append(p.methods, m)
-	
 }

@@ -2,31 +2,70 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
 type UserImplService struct {
 }
 
+func (u UserImplService) InnerError(ctx context.Context) (err error) {
+	return errors.New("inner error")
+}
+
+func (u UserImplService) ValidateError(ctx context.Context) (err error) {
+	return
+}
+
+func (u UserImplService) ForbiddenError(ctx context.Context) (err error) {
+	return
+}
+
 func (u UserImplService) Ping(ctx context.Context) (err error) {
 	return
 }
 
-func (u UserImplService) Wait(ctx context.Context, in *GetProfileInput) (out *GetProfileOut, err error) {
-	time.Sleep(3 * time.Second)
-	out = &GetProfileOut{}
+func (u UserImplService) Wait(ctx context.Context) (err error) {
+	time.Sleep(15 * time.Second)
 	return
 }
 
-func (u UserImplService) Register(ctx context.Context, in *RegisterIn) (out *RegisterOut, err error) {
-	out = new(RegisterOut)
-	out.Username = in.Username
-	out.Password = in.Password
+func (u UserImplService) TestGet(ctx context.Context, in TestStruct) (out TestStruct, err error) {
+	out = in
 	return
 }
 
-func (u UserImplService) GetProfile(ctx context.Context, in *GetProfileInput) (out *GetProfileOut, err error) {
-	out = new(GetProfileOut)
-	out.Text = "Hello world!"
+func (u UserImplService) TestGetArray(ctx context.Context, in TestStructs) (out TestStructs, err error) {
+	out = in
+	return
+}
+
+func (u UserImplService) TestPost(ctx context.Context, in TestStruct) (out TestStruct, err error) {
+	out = in
+	return
+}
+
+func (u UserImplService) TestPostArray(ctx context.Context, in TestStructs) (out TestStructs, err error) {
+	out = in
+	return
+}
+
+func (u UserImplService) TestDelete(ctx context.Context, in TestStruct) (out TestStruct, err error) {
+	out = in
+	return
+}
+
+func (u UserImplService) TestDeleteArray(ctx context.Context, in TestStructs) (out TestStructs, err error) {
+	out = in
+	return
+}
+
+func (u UserImplService) TestPut(ctx context.Context, in TestStruct) (out TestStruct, err error) {
+	out = in
+	return
+}
+
+func (u UserImplService) TestPutArray(ctx context.Context, in TestStructs) (out TestStructs, err error) {
+	out = in
 	return
 }

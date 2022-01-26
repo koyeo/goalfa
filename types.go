@@ -1,15 +1,21 @@
-package _api
+package buck
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/olekukonko/tablewriter"
 	"os"
 	"reflect"
 )
 
+const (
+	POST   = "POST"
+	GET    = "GET"
+	DELETE = "DELETE"
+	PUT    = "PUT"
+)
+
 type Register interface {
-	//CONNECT(path string, handles ...gin.HandlerFunc) gin.IRoutes
-	//TRACE(path string, handles ...gin.HandlerFunc) gin.IRoutes
 	DELETE(path string, handles ...gin.HandlerFunc) gin.IRoutes
 	GET(path string, handles ...gin.HandlerFunc) gin.IRoutes
 	HEAD(path string, handles ...gin.HandlerFunc) gin.IRoutes
@@ -48,6 +54,13 @@ type Driver interface {
 type HandlerInfo struct {
 	Name     string
 	Location string
+}
+
+func (p HandlerInfo) ParsePath(path string) string {
+	if path != "" {
+		return path
+	}
+	return fmt.Sprintf("/%s", p.Name)
 }
 
 type RouteTable struct {

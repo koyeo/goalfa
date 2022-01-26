@@ -1,8 +1,7 @@
 package service
 
 import (
-	"github.com/gozelle/_api"
-	"net/http"
+	"github.com/koyeo/buck"
 )
 
 func NewUserRouter(service UserService) *UserRouter {
@@ -13,38 +12,31 @@ type UserRouter struct {
 	service UserService
 }
 
-func (p UserRouter) Routes() []_api.Route {
-	return []_api.Route{
+func (p UserRouter) Routes() []buck.Route {
+	return []buck.Route{
 		{
 			Prefix: "/api",
-			Children: []_api.Route{
+			Children: []buck.Route{
 				{
-					Prefix: "/guard",
-					Children: []_api.Route{
-						{
-							Path:    "/GetProfile",
-							Handler: p.service.GetProfile,
-						},
-						{
-							Path:    "/wait",
-							Handler: p.service.Wait,
-						},
+					Prefix: "",
+					Children: []buck.Route{
+						{Method: buck.GET, Path: "/ping", Handler: p.service.Ping},
+						{Method: buck.GET, Path: "/inner-error", Handler: p.service.InnerError},
+						{Method: buck.GET, Handler: p.service.ValidateError},
+						{Method: buck.GET, Handler: p.service.ForbiddenError},
 					},
 				},
 				{
-					Prefix: "/open",
-					Children: []_api.Route{
-						{
-							Path:        "/Register",
-							Handler:     p.service.Register,
-							Description: "用户注册",
-						},
-						{
-							Path:        "/Ping",
-							Method:      http.MethodGet,
-							Handler:     p.service.Ping,
-							Description: "Ping",
-						},
+					Prefix: "/guard",
+					Children: []buck.Route{
+						{Handler: p.service.TestPost},
+						{Handler: p.service.TestPostArray},
+						{Method: buck.GET, Handler: p.service.TestGet},
+						{Method: buck.GET, Handler: p.service.TestGetArray},
+						{Method: buck.PUT, Handler: p.service.TestPut},
+						{Method: buck.PUT, Handler: p.service.TestPutArray},
+						{Method: buck.DELETE, Handler: p.service.TestDelete},
+						{Method: buck.DELETE, Handler: p.service.TestDeleteArray},
 					},
 				},
 			},

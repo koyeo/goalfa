@@ -7,6 +7,7 @@ import (
 
 // ReflectFields 反射转换输入输出的字段信息
 func ReflectFields(name string, t reflect.Type) []*Field {
+	// TODO 处理数组情况
 	for {
 		if t.Kind() != reflect.Ptr {
 			break
@@ -22,6 +23,10 @@ func ReflectFields(name string, t reflect.Type) []*Field {
 		field.Label = getFieldLabel(t.Field(i))
 		field.Required = getFieldRequired(t.Field(i))
 		field.Type = t.Field(i).Type.String()
+		// TODO 处理是指针的情况
+		if t.Field(i).Type.Kind() == reflect.Struct {
+			field.Children = append(field.Children, ReflectFields(field.Name, t.Field(i).Type)...)
+		}
 		root.Children = append(root.Children, field)
 	}
 	fields = append(fields, root)
