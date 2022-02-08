@@ -3,11 +3,26 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/shopspring/decimal"
 	"time"
 )
 
 type UserImplService struct {
 }
+
+func (u UserImplService) TestDecimal(ctx context.Context) (out decimal.Decimal, err error) {
+	out = decimal.NewFromFloat(3.14156)
+	return
+}
+
+func (u UserImplService) Ping(ctx context.Context) (r string, err error) {
+	r = "ok"
+	return
+}
+
+//func (u UserImplService) Ping() (r string, err error) {
+//	return
+//}
 
 func (u UserImplService) InnerError(ctx context.Context) (err error) {
 	return errors.New("inner error")
@@ -18,10 +33,6 @@ func (u UserImplService) ValidateError(ctx context.Context) (err error) {
 }
 
 func (u UserImplService) ForbiddenError(ctx context.Context) (err error) {
-	return
-}
-
-func (u UserImplService) Ping(ctx context.Context) (err error) {
 	return
 }
 

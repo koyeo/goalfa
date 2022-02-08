@@ -1,44 +1,59 @@
 package exporter
 
 import (
+	"fmt"
+	"github.com/koyeo/buck/utils"
 	"reflect"
 	"strings"
 )
 
 // ReflectFields 反射转换输入输出的字段信息
-func ReflectFields(name string, t reflect.Type) []*Field {
-	// TODO 处理数组情况
-	for {
-		if t.Kind() != reflect.Ptr {
-			break
+func ReflectFields(prefix, name, label string, validator *Validator, t reflect.Type) (field *Field) {
+	t = utils.TypeElem(t)
+	field = new(Field)
+	field.Name = name
+	field.Type = t.String()
+	field.Validator = validator
+	if t.Kind() == reflect.Struct && field.Type != "decimal.Decimal" {
+		field.Struct = true
+		for i := 0; i < t.NumField(); i++ {
+			sf := t.Field(i)
+			_name := getJsonField(sf)
+			label = getFieldLabel(sf)
+			var _prefix string
+			if sf.Type.Kind() == reflect.Struct {
+				_name = fmt.Sprintf("%s%s", prefix, strings.Title(_name))
+				_prefix = name
+			}
+			_validator := getFieldValidator(sf)
+			field.Fields = append(field.Fields, ReflectFields(_prefix, _name, label, _validator, sf.Type))
 		}
-		t = t.Elem()
 	}
-	var fields []*Field
-	root := new(Field)
-	root.Name = name
-	for i := 0; i < t.NumField(); i++ {
-		field := new(Field)
-		field.Name = getJsonField(t.Field(i))
-		field.Label = getFieldLabel(t.Field(i))
-		field.Required = getFieldRequired(t.Field(i))
-		field.Type = t.Field(i).Type.String()
-		// TODO 处理是指针的情况
-		if t.Field(i).Type.Kind() == reflect.Struct {
-			field.Children = append(field.Children, ReflectFields(field.Name, t.Field(i).Type)...)
-		}
-		root.Children = append(root.Children, field)
+	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+		field.Array = true
+		field.Elem = ReflectFields(prefix, name, label, validator, t.Elem())
 	}
-	fields = append(fields, root)
-	return fields
+	return
 }
 
 func getFieldLabel(field reflect.StructField) string {
 	return field.Tag.Get("label")
 }
 
-func getFieldRequired(field reflect.StructField) bool {
-	return strings.Contains(field.Tag.Get("validator"), "required")
+func getFieldValidator(field reflect.StructField) (validator *Validator) {
+	required := strings.Contains(field.Tag.Get("validator"), "required")
+	if required {
+		validator = newIfNoValidator(validator)
+		validator.Required = true
+	}
+	return
+}
+
+func newIfNoValidator(validator *Validator) *Validator {
+	if validator == nil {
+		validator = new(Validator)
+	}
+	return validator
 }
 
 func getJsonField(field reflect.StructField) string {
@@ -48,4 +63,24 @@ func getJsonField(field reflect.StructField) string {
 		n = field.Name
 	}
 	return n
+}
+
+type TypeConverter func(string) string
+
+var _ TypeConverter = typescriptTypeConverter
+
+func typescriptTypeConverter(o string) string {
+	switch o {
+	case "int", "int8", "int16", "int32", "int64",
+		"uint", "uint8", "uint16", "uint32", "uint64",
+		"float32", "float64",
+		"decimal.Decimal":
+		return "number"
+	case "bool":
+		return "boolean"
+	case "string":
+		return "string"
+	default:
+		return "any"
+	}
 }

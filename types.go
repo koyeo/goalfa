@@ -9,10 +9,10 @@ import (
 )
 
 const (
-	POST   = "POST"
-	GET    = "GET"
-	DELETE = "DELETE"
-	PUT    = "PUT"
+	Post   = "POST"
+	Get    = "GET"
+	Delete = "DELETE"
+	Put    = "PUT"
 )
 
 type Register interface {
@@ -93,3 +93,9 @@ type RouteRow struct {
 	Source   string `json:"source"`
 	Location string `json:"location"`
 }
+
+type Value struct {
+	value   interface{}
+	headers map[string]string
+}
+

@@ -32,21 +32,61 @@ func (p Exporter) Run() {
 		//},
 		MaxAge: 12 * time.Hour,
 	}))
-	// 导出SDK
-	engine.GET("/sdk", func(c *gin.Context) {
-		c.String(200, "some SDK")
-	})
-	// 导出描述协议
-	engine.GET("/protocol", func(c *gin.Context) {
-		c.JSON(200, map[string]interface{}{
-			"options": p.options,
-			"methods": p.Methods,
-		})
-	})
+	engine.GET("/sdk", p.sdkHandler)
+	engine.GET("/protocol", p.protocolHandler)
 	go func() {
 		err := engine.Run(p.addr)
 		if err != nil {
 			_log.Panic("接口导出器启动失败", wrap.Error(err))
 		}
 	}()
+}
+
+// 导出 SDK 代码
+func (p Exporter) sdkHandler(c *gin.Context) {
+	c.String(200, "some SDK")
+}
+
+type ProtocolOutput struct {
+	Options *Options  `json:"options"`
+	Methods []*Method `json:"methods"`
+}
+
+// 导出接口描述协议
+func (p Exporter) protocolHandler(c *gin.Context) {
+	
+	out := new(ProtocolOutput)
+	out.Options = p.options
+	out.Methods = p.convertMethodTypes(c.Query("lang"))
+	c.JSON(200, out)
+}
+
+func (p Exporter) convertMethodTypes(lang string) []*Method {
+	methods := make([]*Method, 0)
+	switch lang {
+	case "ts":
+		for _, v := range p.Methods {
+			n := v.Fork()
+			p.toTypescriptField(n.Input)
+			p.toTypescriptField(n.Output)
+			methods = append(methods, n)
+		}
+	default:
+		methods = p.Methods
+	}
+	return methods
+}
+
+func (p Exporter) toTypescriptField(field *Field) {
+	if field == nil {
+		return
+	}
+	field.Origin = field.Type
+	field.Type = typescriptTypeConverter(field.Type)
+	for _, v := range field.Fields {
+		p.toTypescriptField(v)
+	}
+	if field.Elem != nil {
+		p.toTypescriptField(field.Elem)
+	}
 }

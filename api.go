@@ -12,9 +12,6 @@ import (
 	"strings"
 )
 
-type String string
-type HTML string
-
 func New() *API {
 	return &API{
 		routeTable: &RouteTable{},
@@ -92,10 +89,10 @@ func (p *API) isContext(v reflect.Type) bool {
 // 检查参数是否接受的路由 Handler 格式
 func (p *API) isHandler(t reflect.Type) error {
 	if t.Kind() != reflect.Func {
-		return fmt.Errorf("expect func")
+		return fmt.Errorf("handler expect type func")
 	}
 	if t.NumIn() != 1 && t.NumIn() != 2 {
-		return fmt.Errorf("expect max 2 params")
+		return fmt.Errorf("max 2 parameters expected")
 	}
 	if t.NumIn() == 2 {
 		in := t.In(1)
@@ -106,17 +103,17 @@ func (p *API) isHandler(t reflect.Type) error {
 			in = in.Elem()
 		}
 		if in.Kind() != reflect.Struct {
-			return fmt.Errorf("input only acept struct")
+			return fmt.Errorf("second input parameter only acept struct")
 		}
 	}
 	if !p.isContext(t.In(0)) {
-		return fmt.Errorf("expect context")
+		return fmt.Errorf("first input parameter expect type context.Context")
 	}
 	if t.NumOut() != 1 && t.NumOut() != 2 {
-		return fmt.Errorf("expect max 2 output params")
+		return fmt.Errorf("max 2 output parameters expected")
 	}
 	if !p.isError(t.Out(t.NumOut() - 1)) {
-		return fmt.Errorf("expect error")
+		return fmt.Errorf("last output parameter expect type error")
 	}
 	return nil
 }
@@ -139,6 +136,8 @@ func (p *API) prepareRoutes(in []Route) (out []Route, err error) {
 		if out[i].Handler != nil {
 			out[i].handler, err = p.parseHandler(out[i].Handler)
 			if err != nil {
+				// TODO 标注处理器的文件及行号
+				//err = fmt.Errorf("parse handler '%s' error: %s",in[i].)
 				return
 			}
 			if out[i].Method == "" {
@@ -217,21 +216,39 @@ func (p *API) proxyHandler(handler reflect.Value) gin.HandlerFunc {
 			return
 		}
 		if l == 2 {
-			r := out[0].Interface()
-			switch r.(type) {
-			case String:
-				c.String(http.StatusOK, string(r.(String)))
-				return
-			default:
-				c.JSON(http.StatusOK, r)
-				return
+			if isBasicType(out[0]) {
+				c.String(http.StatusOK, "%v", out[0].Interface())
+			} else {
+				stringer, ok := out[0].Interface().(fmt.Stringer)
+				if ok {
+					c.String(http.StatusOK, stringer.String())
+				} else {
+					c.JSON(http.StatusOK, out[0].Interface())
+					return
+				}
 			}
 		} else {
 			c.String(http.StatusOK, "")
 			return
 		}
-		return
 	}
+}
+
+func isBasicType(v reflect.Value) bool {
+	for {
+		if v.Kind() != reflect.Ptr {
+			break
+		}
+		v = v.Elem()
+	}
+	switch v.Kind() {
+	case reflect.String,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		return true
+	}
+	return false
 }
 
 func realType(t reflect.Type) reflect.Type {
@@ -293,6 +310,9 @@ func (p API) makeExporter() {
 }
 
 func (p *API) addMethod(method, path, description string, info HandlerInfo, handler reflect.Value) {
+	if p.exporter == nil {
+		return
+	}
 	m := &exporter.Method{
 		Name:        info.Name,
 		Path:        path,
@@ -300,10 +320,12 @@ func (p *API) addMethod(method, path, description string, info HandlerInfo, hand
 		Description: description,
 	}
 	if handler.Type().NumIn() > 1 {
-		m.Input = exporter.ReflectFields(fmt.Sprintf("%sIn", m.Name), handler.Type().In(1))
+		name := fmt.Sprintf("%sIn", m.Name)
+		m.Input = exporter.ReflectFields(name, name, "", nil, handler.Type().In(1))
 	}
 	if handler.Type().NumOut() > 1 {
-		m.Output = exporter.ReflectFields(fmt.Sprintf("%sOut", m.Name), handler.Type().Out(0))
+		name := fmt.Sprintf("%sOut", m.Name)
+		m.Output = exporter.ReflectFields(name, name, "", nil, handler.Type().Out(0))
 	}
 	p.methods = append(p.methods, m)
 }
