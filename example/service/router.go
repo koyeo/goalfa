@@ -38,6 +38,7 @@ func (p UserRouter) Routes() []buck.Route {
 						{Method: buck.Delete, Handler: p.service.TestDelete},
 						{Method: buck.Delete, Handler: p.service.TestDeleteArray},
 						{Method: buck.Get, Handler: p.service.TestDecimal},
+						{Method: buck.Post, Handler: p.service.TestNestedInput},
 					},
 				},
 			},

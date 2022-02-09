@@ -320,12 +320,10 @@ func (p *API) addMethod(method, path, description string, info HandlerInfo, hand
 		Description: description,
 	}
 	if handler.Type().NumIn() > 1 {
-		name := fmt.Sprintf("%sIn", m.Name)
-		m.Input = exporter.ReflectFields(name, name, "", nil, handler.Type().In(1))
+		m.Input = exporter.ReflectFields(fmt.Sprintf("%sIn", m.Name), "", nil, handler.Type().In(1))
 	}
 	if handler.Type().NumOut() > 1 {
-		name := fmt.Sprintf("%sOut", m.Name)
-		m.Output = exporter.ReflectFields(name, name, "", nil, handler.Type().Out(0))
+		m.Output = exporter.ReflectFields(fmt.Sprintf("%sOut", m.Name), "", nil, handler.Type().Out(0))
 	}
 	p.methods = append(p.methods, m)
 }

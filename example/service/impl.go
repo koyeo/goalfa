@@ -10,6 +10,11 @@ import (
 type UserImplService struct {
 }
 
+func (u UserImplService) TestNestedInput(ctx context.Context, in A) (out A, err error) {
+	out = in
+	return
+}
+
 func (u UserImplService) TestDecimal(ctx context.Context) (out decimal.Decimal, err error) {
 	out = decimal.NewFromFloat(3.14156)
 	return

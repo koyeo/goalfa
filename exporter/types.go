@@ -56,6 +56,7 @@ func (p Field) Fork() *Field {
 	n.Type = p.Type
 	n.Description = p.Description
 	n.Array = p.Array
+	n.Struct = p.Struct
 	n.Origin = p.Origin
 	n.Validator = p.Validator
 	n.Form = p.Form

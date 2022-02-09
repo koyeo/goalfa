@@ -1,17 +1,17 @@
 package exporter
 
 import (
-	"fmt"
 	"github.com/koyeo/buck/utils"
 	"reflect"
 	"strings"
 )
 
 // ReflectFields 反射转换输入输出的字段信息
-func ReflectFields(prefix, name, label string, validator *Validator, t reflect.Type) (field *Field) {
+func ReflectFields(name, label string, validator *Validator, t reflect.Type) (field *Field) {
 	t = utils.TypeElem(t)
 	field = new(Field)
 	field.Name = name
+	field.Label = label
 	field.Type = t.String()
 	field.Validator = validator
 	if t.Kind() == reflect.Struct && field.Type != "decimal.Decimal" {
@@ -19,19 +19,13 @@ func ReflectFields(prefix, name, label string, validator *Validator, t reflect.T
 		for i := 0; i < t.NumField(); i++ {
 			sf := t.Field(i)
 			_name := getJsonField(sf)
-			label = getFieldLabel(sf)
-			var _prefix string
-			if sf.Type.Kind() == reflect.Struct {
-				_name = fmt.Sprintf("%s%s", prefix, strings.Title(_name))
-				_prefix = name
-			}
+			_label := getFieldLabel(sf)
 			_validator := getFieldValidator(sf)
-			field.Fields = append(field.Fields, ReflectFields(_prefix, _name, label, _validator, sf.Type))
+			field.Fields = append(field.Fields, ReflectFields(_name, _label, _validator, sf.Type))
 		}
-	}
-	if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+	} else if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
 		field.Array = true
-		field.Elem = ReflectFields(prefix, name, label, validator, t.Elem())
+		field.Elem = ReflectFields(name, label, validator, t.Elem())
 	}
 	return
 }

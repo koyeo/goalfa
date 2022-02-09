@@ -20,6 +20,7 @@ type UserService interface {
 	TestPut(ctx context.Context, in TestStruct) (out TestStruct, err error)
 	TestPutArray(ctx context.Context, in TestStructs) (out TestStructs, err error)
 	TestDecimal(ctx context.Context) (out decimal.Decimal, err error)
+	TestNestedInput(ctx context.Context, in A) (out A, err error)
 }
 
 type User struct {
@@ -62,6 +63,22 @@ type TestStructs struct {
 	Float32s []float32         `json:"float32s"`
 	Float64s []float32         `json:"float64s"`
 	Decimals []decimal.Decimal `json:"decimals"`
-	Users    []User            `json:"users"`
-	//Structs  []TestStruct      `json:"structs"`
+	Users    []User            `json:"users" label:"用户"`
+}
+
+type A struct {
+	//A1 string `json:"a1"`
+	B1 B      `json:"b1"`
+	//BB []B    `json:"bb"`
+	//C  C      `json:"c"`
+}
+
+type B struct {
+	B1 string `json:"b1"`
+	B2 int    `json:"b2"`
+	C  C      `json:"c"`
+}
+
+type C struct {
+	C1 decimal.Decimal `json:"c1"`
 }
