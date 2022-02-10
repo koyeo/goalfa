@@ -10,11 +10,11 @@
 * 支持自动生成文档；
 * 支持通过 命令行生成多语言 SDK。
 
+## 安装
 
-
-## 文档截图
-
-![](/Users/kun/workspace/buck/images/screenshot.png)
+```
+go get -u github.com/koyeo/buck
+```
 
 ## 快速上手
 
@@ -216,6 +216,10 @@ func (u UserRouter) Routers() []buck.Route {
 | label     | 用于备注字段在文档中的显示名称                      |
 | validator | 用于标注字段的校验规则，如 `validator="required"` |
 
+## 文档工具截图
+
+## ![](images/screenshot.png)
+
 ## Authors 关于作者
 
 - [**koyeo**](https://github.com/koeyo) - *Initial work* 
@@ -224,4 +228,4 @@ func (u UserRouter) Routers() []buck.Route {
 
 ## License 授权协议
 
-这个项目 MIT 协议， 请点击 [LICENSE.md](https://gist.github.com/wangyan/LICENSE.md) 了解更多细节。
+这个项目 MIT 协议， 请点击 [LICENSE]([MIT License | Choose a License](https://choosealicense.com/licenses/mit)) 了解更多细节。
