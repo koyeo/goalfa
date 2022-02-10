@@ -40,6 +40,7 @@ func (p Exporter) Run() {
 	}))
 	engine.GET("/sdk", p.sdkHandler)
 	engine.GET("/protocol", p.protocolHandler)
+	// engine.GET("/struct", p.protocolHandler)
 	engine.StaticFS("/exporter", assets.Root)
 	engine.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/exporter/index.html")
