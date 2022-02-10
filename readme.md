@@ -216,7 +216,9 @@ func (u UserRouter) Routers() []buck.Route {
 | label     | 用于备注字段在文档中的显示名称                      |
 | validator | 用于标注字段的校验规则，如 `validator="required"` |
 
-## 文档工具截图 ![](images/screenshot.png)
+## 文档工具截图 
+
+![](images/screenshot.png)
 
 ## Authors 关于作者
 
