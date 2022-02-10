@@ -226,4 +226,4 @@ func (u UserRouter) Routers() []buck.Route {
 
 ## License 授权协议
 
-这个项目 MIT 协议， 请点击 [LICENSE]([MIT License | Choose a License](https://choosealicense.com/licenses/mit)) 了解更多细节。
+这个项目 MIT 协议， 请点击 [LICENSE](https://choosealicense.com/licenses/mit) 了解更多细节。
