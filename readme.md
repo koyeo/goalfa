@@ -218,7 +218,7 @@ func (u UserRouter) Routers() []buck.Route {
 
 ## 文档工具截图 
 
-![](images/exporter.png)
+![](images/exporter2.png)
 
 ## Authors 关于作者
 
