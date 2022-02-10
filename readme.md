@@ -67,7 +67,7 @@ func main() {
 }
 ```
 
-### 定义服务路由
+### 定义 API 路由
 
 > service/router.go
 
@@ -128,7 +128,7 @@ type Order struct {
 }
 ```
 
-### 实现服务接口
+### 服务实现
 
 > service/mock.go
 
@@ -163,7 +163,7 @@ func (f FooMock) QueryPost(ctx context.Context, in QueryPostIn) (out []Post, err
 
 
 
-## 服务方法定义
+## 服务方法
 
 **格式说明:**
 
