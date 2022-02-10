@@ -66,6 +66,7 @@ func main() {
     api.Run(":8080")
 }
 ```
+通过 [http://localhost:9090](http://localhost:9090) 访问 API 调试工具。
 
 ### 定义 API 路由
 
