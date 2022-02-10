@@ -303,9 +303,7 @@ func (p *API) parseHandlerInfoValue(v reflect.Value) HandlerInfo {
 
 // 生成 Exporter 信息
 func (p API) makeExporter() {
-	if p.exporter == nil {
-		return
-	}
+	p.exporter.SetVersion(p.version)
 	p.exporter.Methods = p.methods
 }
 

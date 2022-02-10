@@ -20,7 +20,8 @@ func (p UserRouter) Routes() []buck.Route {
 				{
 					Prefix: "",
 					Children: []buck.Route{
-						{Method: buck.Get, Path: "/ping", Handler: p.service.Ping},
+						{Method: buck.Get, Path: "/ping", Handler: p.service.Ping, Description: "测试项目是否连通"},
+						{Method: buck.Get, Handler: p.service.Wait},
 						{Method: buck.Get, Path: "/inner-error", Handler: p.service.InnerError},
 						{Method: buck.Get, Handler: p.service.ValidateError},
 						{Method: buck.Get, Handler: p.service.ForbiddenError},

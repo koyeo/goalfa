@@ -68,17 +68,17 @@ type TestStructs struct {
 
 type A struct {
 	//A1 string `json:"a1"`
-	B1 B      `json:"b1"`
-	//BB []B    `json:"bb"`
+	//B1 B      `json:"b1"`
+	BB []B    `json:"bb"`
 	//C  C      `json:"c"`
 }
 
 type B struct {
 	B1 string `json:"b1"`
-	B2 int    `json:"b2"`
+	B2 string `json:"b2"`
 	C  C      `json:"c"`
 }
 
 type C struct {
-	C1 decimal.Decimal `json:"c1"`
+	C1 string `json:"c1"`
 }

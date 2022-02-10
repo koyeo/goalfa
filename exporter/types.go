@@ -1,7 +1,8 @@
 package exporter
 
 type Options struct {
-	Envs []*Env `json:"envs"`
+	Project string `json:"project"`
+	Envs    []*Env `json:"envs"`
 }
 
 type Env struct {

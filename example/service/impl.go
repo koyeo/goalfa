@@ -25,10 +25,6 @@ func (u UserImplService) Ping(ctx context.Context) (r string, err error) {
 	return
 }
 
-//func (u UserImplService) Ping() (r string, err error) {
-//	return
-//}
-
 func (u UserImplService) InnerError(ctx context.Context) (err error) {
 	return errors.New("inner error")
 }
