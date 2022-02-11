@@ -5,9 +5,15 @@ import (
 	"fmt"
 )
 
-type SDKFile struct {
-	Name    string
-	Content string
+type Folder struct {
+	Name      string  `json:"name"`
+	Namespace string  `json:"namespace"`
+	Files     []*File `json:"files"`
+}
+
+type File struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
 }
 
 func NewSDK(methods []*Method) *SDK {
@@ -18,7 +24,7 @@ type SDK struct {
 	methods []*Method
 }
 
-func (p SDK) Make(lang string) ([]byte, error) {
+func (p SDK) Make(lang, pkg string) ([]byte, error) {
 	var maker Maker
 	switch lang {
 	case "go":
@@ -30,7 +36,7 @@ func (p SDK) Make(lang string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unsupport sdk lang: '%s'", lang)
 	}
-	files, err := maker.Make(p.methods)
+	files, err := maker.Make(pkg, p.methods)
 	if err != nil {
 		return nil, err
 	}

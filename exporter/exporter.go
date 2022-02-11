@@ -22,6 +22,7 @@ type Exporter struct {
 	addr    string
 	options *Options
 	Name    string
+	Package string
 	Methods []*Method
 }
 
@@ -84,7 +85,7 @@ func (p Exporter) printAddress() {
 // 导出 SDK 代码
 func (p Exporter) sdkHandler(c *gin.Context) {
 	sdk := NewSDK(p.Methods)
-	data, err := sdk.Make(c.Query("lang"))
+	data, err := sdk.Make(c.Query("lang"), c.Query("package"))
 	if err != nil {
 		_ = c.Error(err)
 		return

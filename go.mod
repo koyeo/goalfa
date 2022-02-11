@@ -3,6 +3,8 @@ module github.com/koyeo/buck
 go 1.16
 
 require (
+	github.com/fatih/structs v1.1.0 // indirect
+	github.com/flosch/pongo2/v5 v5.0.0 // indirect
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.4.1
