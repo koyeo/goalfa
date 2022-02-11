@@ -7,6 +7,7 @@ import (
 	"github.com/gozelle/_log"
 	"github.com/gozelle/_log/wrap"
 	"github.com/koyeo/buck/assets"
+	"github.com/ttacon/chalk"
 	"net/http"
 	"strings"
 	"time"
@@ -59,6 +60,7 @@ func (p Exporter) Run() {
 		engine.HandleContext(c)
 	})
 	go func() {
+		p.printAddress()
 		err := engine.Run(p.addr)
 		if err != nil {
 			_log.Panic("接口导出器启动失败", wrap.Error(err))
@@ -66,9 +68,28 @@ func (p Exporter) Run() {
 	}()
 }
 
+// 打印 API 调试器访问地址
+func (p Exporter) printAddress() {
+	addr := p.addr
+	if strings.HasPrefix(addr, ":") {
+		addr = fmt.Sprintf("http://127.0.0.1%s", addr)
+	} else {
+		addr = fmt.Sprintf("http://%s", addr)
+	}
+	fmt.Println(chalk.Green.Color(strings.Repeat("=", 100)))
+	fmt.Println(chalk.Green.Color(fmt.Sprintf("API 调试器访问地址：%s", addr)))
+	fmt.Println(chalk.Green.Color(strings.Repeat("=", 100)))
+}
+
 // 导出 SDK 代码
 func (p Exporter) sdkHandler(c *gin.Context) {
-	c.String(200, "some SDK")
+	sdk := NewSDK(p.Methods)
+	data, err := sdk.Make(c.Query("lang"))
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+	c.Data(http.StatusOK, "application/json", data)
 }
 
 type ProtocolOutput struct {
@@ -93,8 +114,8 @@ func (p Exporter) convertMethodTypes(lang string) []*Method {
 	case "ts":
 		for _, v := range p.Methods {
 			n := v.Fork()
-			p.toTypescriptField(n.Input)
-			p.toTypescriptField(n.Output)
+			p.toTypescriptFieldType(n.Input)
+			p.toTypescriptFieldType(n.Output)
 			methods = append(methods, n)
 		}
 	default:
@@ -103,16 +124,16 @@ func (p Exporter) convertMethodTypes(lang string) []*Method {
 	return methods
 }
 
-func (p Exporter) toTypescriptField(field *Field) {
+func (p Exporter) toTypescriptFieldType(field *Field) {
 	if field == nil {
 		return
 	}
 	field.Origin = field.Type
 	field.Type = typescriptTypeConverter(field.Type)
 	for _, v := range field.Fields {
-		p.toTypescriptField(v)
+		p.toTypescriptFieldType(v)
 	}
 	if field.Elem != nil {
-		p.toTypescriptField(field.Elem)
+		p.toTypescriptFieldType(field.Elem)
 	}
 }
