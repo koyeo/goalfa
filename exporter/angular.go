@@ -43,7 +43,7 @@ export class APIService {
     }
 {% for method in Methods %}
 {% if method.Description %}    // {{ method.Description }}{% endif %}
-    {{ method.Name }}({% if method.Input !='' %}params:{{ method.Input }}, {% endif %}options?:HttpOptions){% if method.Output !='' %}:{{ method.Output }}{% endif %} { {% if method.Input !='' %}
+    {{ method.Name }}({% if method.InputType !='' %}params:{{ method.InputType }}, {% endif %}options?:HttpOptions){% if method.OutputType !='' %}:{{ method.OutputType }}{% endif %} { {% if method.InputType !='' %}
 	    if(!options){
            options = {};
 	    }

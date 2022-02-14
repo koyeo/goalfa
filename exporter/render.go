@@ -14,8 +14,8 @@ type RenderData struct {
 
 type RenderMethod struct {
 	Name        string
-	Input       string
-	Output      string
+	InputType   string
+	OutputType  string
 	Description string
 	Method      string
 	Path        string
@@ -67,10 +67,10 @@ func makeRenderMethod(method *Method, namer Namer, typer Typer) (renderMethod *R
 	renderMethod.Method = method.Method
 	renderMethod.Path = method.Path
 	if method.Input != nil {
-		renderMethod.Input = makeMethodIOName(method.Input, typer)
+		renderMethod.InputType = makeMethodIOName(method.Input, typer)
 	}
 	if method.Output != nil {
-		renderMethod.Output = makeMethodIOName(method.Output, typer)
+		renderMethod.OutputType = makeMethodIOName(method.Output, typer)
 	}
 	return
 }
@@ -80,7 +80,7 @@ func makeMethodIOName(field *Field, typer Typer) string {
 		return typer(field.Name, true, false)
 	} else if field.Array {
 		if field.Elem.Struct {
-			return typer(fmt.Sprintf("%s%s", field.Name, strings.Title(field.Elem.Name)), true, true)
+			return typer(field.Name, true, true)
 		} else {
 			return typer(field.Elem.Type, false, true)
 		}

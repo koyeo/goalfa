@@ -9,7 +9,7 @@ type FooService interface {
 }
 
 type Post struct {
-	Title   string   `json:"title,omitempty" label:"标题" validator:"required"`
+	Title   string   `json:"title,omitempty" label:"标题" validator:"required" description:""`
 	Content string   `json:"content,omitempty" label:"内容"`
 	Tags    []string `json:"tags,omitempty" label:"标签"`
 }

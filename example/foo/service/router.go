@@ -14,7 +14,7 @@ type FooRouter struct {
 
 func (f FooRouter) Routes() []buck.Route {
 	return []buck.Route{
-		{Method: buck.Get, Handler: f.service.Ping},
+		{Method: buck.Get, Handler: f.service.Ping, Description: "测试"},
 		{Method: buck.Get, Handler: f.service.QueryPost},
 		{Handler: f.service.AddPost},
 	}

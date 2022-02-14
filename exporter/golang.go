@@ -70,7 +70,7 @@ func request(method string, path string) {
 
 {% for method in Methods %}
 {% if method.Description %}// {{ method.Name }} {{ method.Description }}{% endif %}
-func {{ method.Name }}(ctx context.Context{% if method.Input !='' %},in *{{ method.Input }}{% endif %})({% if method.Output !='' %}out *{{ method.Output }},{% endif %} err error){
+func {{ method.Name }}(ctx context.Context{% if method.InputType !='' %},in {{ method.InputType }}{% endif %})({% if method.OutputType !='' %}out {{ method.OutputType }},{% endif %} err error){
     // {{ method.Method }} {{ method.Path }}
 	return
 }
