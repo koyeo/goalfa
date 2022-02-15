@@ -1,8 +1,24 @@
 package service
 
-import "context"
+import (
+	"context"
+	"github.com/shopspring/decimal"
+)
 
 type FooMock struct {
+}
+
+func (f FooMock) Ping2(ctx context.Context) (out decimal.Decimal, err error) {
+	out = decimal.NewFromFloat(3.14)
+	return
+}
+
+func (f FooMock) TestGetArray(ctx context.Context) (out [][]string, err error) {
+	return
+}
+
+func (f FooMock) TestPostArray(ctx context.Context) (out [][]Post, err error) {
+	return
 }
 
 func (f FooMock) Ping(ctx context.Context) (out string, err error) {

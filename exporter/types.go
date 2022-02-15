@@ -1,8 +1,15 @@
 package exporter
 
 type Options struct {
-	Project string `json:"project"`
-	Envs    []*Env `json:"envs"`
+	Project    string      `json:"project"`
+	Envs       []Env       `json:"envs"`
+	BasicTypes []BasicType `json:"-"`
+}
+
+type BasicType struct {
+	Elem     interface{}
+	Packages map[string]string
+	Mapping  map[string]string
 }
 
 type Env struct {
@@ -43,6 +50,7 @@ type Field struct {
 	Description string     `json:"description,omitempty"`
 	Array       bool       `json:"array,omitempty"`
 	Struct      bool       `json:"struct,omitempty"`
+	Nested      bool       `json:"nested,omitempty"`
 	Origin      string     `json:"origin,omitempty"`    // 原始类型
 	Fields      []*Field   `json:"fields,omitempty"`    // 描述 Struct 成员变量
 	Elem        *Field     `json:"elem,omitempty"`      // 描述 Slice/Array 子元素

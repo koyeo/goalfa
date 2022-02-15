@@ -16,7 +16,7 @@
 go get -u github.com/koyeo/buck
 ```
 
-## 命令行安装
+## 命令行工具安装
 
 ```
 go get -u github.com/koyeo/buck/cmd/buck

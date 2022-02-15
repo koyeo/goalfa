@@ -1,11 +1,25 @@
 package service
 
-import "context"
+import (
+	"context"
+	"github.com/shopspring/decimal"
+)
 
 type FooService interface {
 	Ping(ctx context.Context) (out string, err error)
+	Ping2(ctx context.Context) (out decimal.Decimal, err error)
 	AddPost(ctx context.Context, in Post) (out Post, err error)
 	QueryPost(ctx context.Context, in QueryPostIn) (out []Post, err error)
+	TestGetArray(ctx context.Context) (out [][]string, err error)
+	TestPostArray(ctx context.Context) (out [][]Post, err error)
+}
+
+type CID struct {
+	value string
+}
+
+func (p CID) String() string {
+	return p.value
 }
 
 type Post struct {

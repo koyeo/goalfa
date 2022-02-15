@@ -7,27 +7,33 @@ import (
 	"github.com/gozelle/_log"
 	"github.com/gozelle/_log/wrap"
 	"github.com/koyeo/buck/assets"
+	"github.com/koyeo/buck/utils"
 	"github.com/ttacon/chalk"
 	"net/http"
+	"reflect"
 	"strings"
 	"time"
 )
 
 func NewExporter(addr string, options *Options) *Exporter {
-	return &Exporter{addr: addr, options: options}
+	e := &Exporter{addr: addr, options: options}
+	e.initBasicTypes()
+	return e
 }
 
 type Exporter struct {
-	version string
-	addr    string
-	options *Options
-	Name    string
-	Package string
-	Methods []*Method
+	version    string
+	addr       string
+	options    *Options
+	Name       string
+	Package    string
+	Methods    []*Method
+	basicTypes map[string]bool
 }
 
-func (p *Exporter) SetVersion(version string) {
+func (p *Exporter) Init(version string) {
 	p.version = version
+	p.initBasicTypes()
 }
 
 func (p Exporter) Run() {
@@ -101,7 +107,6 @@ type ProtocolOutput struct {
 
 // 导出接口描述协议
 func (p Exporter) protocolHandler(c *gin.Context) {
-	
 	out := new(ProtocolOutput)
 	out.Version = p.version
 	out.Options = p.options
@@ -137,4 +142,98 @@ func (p Exporter) toTypescriptFieldType(field *Field) {
 	if field.Elem != nil {
 		p.toTypescriptFieldType(field.Elem)
 	}
+}
+
+func (p *Exporter) initBasicTypes() {
+	if p.options == nil {
+		return
+	}
+	for _, v := range p.options.BasicTypes {
+		if p.basicTypes == nil {
+			p.basicTypes = map[string]bool{}
+		}
+		r := reflect.ValueOf(v.Elem)
+		p.basicTypes[fmt.Sprintf("%s@%s", r.Type().PkgPath(), r.Type().String())] = true
+	}
+}
+
+// ReflectFields 反射转换输入输出的字段信息
+func (p Exporter) ReflectFields(name, label string, validator *Validator, t reflect.Type) (field *Field) {
+	t = utils.TypeElem(t)
+	field = new(Field)
+	field.Name = name
+	field.Label = label
+	field.Type = p.getType(t)
+	field.Validator = validator
+	if t.Kind() == reflect.Struct && !p.isBasicType(t) {
+		field.Struct = true
+		for i := 0; i < t.NumField(); i++ {
+			sf := t.Field(i)
+			_name := p.getName(sf)
+			_label := p.getFieldLabel(sf)
+			_validator := p.getFieldValidator(sf)
+			_field := p.ReflectFields(_name, _label, _validator, sf.Type)
+			if _field.Struct || _field.Nested {
+				field.Nested = true
+			}
+			field.Fields = append(field.Fields, _field)
+		}
+	} else if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
+		field.Array = true
+		field.Elem = p.ReflectFields("", label, validator, t.Elem())
+		if field.Elem.Struct || field.Elem.Nested {
+			field.Nested = true
+		}
+	}
+	return
+}
+
+func (p Exporter) isBasicType(t reflect.Type) bool {
+	fmt.Println("nil", p.basicTypes)
+	if p.basicTypes == nil {
+		return false
+	}
+	fmt.Println(fmt.Sprintf("%s@%s", t.PkgPath(), t.String()))
+	_, ok := p.basicTypes[fmt.Sprintf("%s@%s", t.PkgPath(), t.String())]
+	return ok
+}
+
+func (p Exporter) getType(t reflect.Type) string {
+	if p.isBasicType(t) {
+		return t.String()
+	}
+	s := t.String()
+	if strings.Contains(s, ".") {
+		s = strings.Split(s, ".")[1]
+	}
+	return s
+}
+
+func (p Exporter) getFieldLabel(field reflect.StructField) string {
+	return field.Tag.Get("label")
+}
+
+func (p Exporter) getFieldValidator(field reflect.StructField) (validator *Validator) {
+	required := strings.Contains(field.Tag.Get("validator"), "required")
+	if required {
+		validator = p.newIfNoValidator(validator)
+		validator.Required = true
+	}
+	return
+}
+
+func (p Exporter) newIfNoValidator(validator *Validator) *Validator {
+	if validator == nil {
+		validator = new(Validator)
+	}
+	return validator
+}
+
+func (p Exporter) getName(field reflect.StructField) string {
+	n := field.Tag.Get("json")
+	n = strings.ReplaceAll(n, ",omitempty", "")
+	if n == "" {
+		n = field.Name
+	}
+	return n
 }

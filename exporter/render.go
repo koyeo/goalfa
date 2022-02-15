@@ -1,15 +1,13 @@
 package exporter
 
 import (
-	"fmt"
 	"github.com/fatih/structs"
 	"github.com/flosch/pongo2/v5"
-	"strings"
 )
 
 type RenderData struct {
 	Methods []*RenderMethod
-	Structs []*RenderStruct
+	Structs []*RenderField
 }
 
 type RenderMethod struct {
@@ -21,18 +19,13 @@ type RenderMethod struct {
 	Path        string
 }
 
-type RenderStruct struct {
-	Name        string
-	Description string
-	Fields      []*RenderField
-}
-
 type RenderField struct {
 	Name        string
 	Type        string
 	Description string
 	Json        string
 	Required    bool
+	Fields      []*RenderField
 }
 
 type Namer func(string) string
@@ -53,9 +46,10 @@ var EmptyFormatter Formatter = func(s string) (string, error) {
 
 func MakeRenderData(methods []*Method, namer Namer, typer Typer) (data *RenderData) {
 	data = new(RenderData)
+	checker := newRenderFieldChecker()
 	for _, v := range methods {
 		data.Methods = append(data.Methods, makeRenderMethod(v, namer, typer))
-		data.Structs = append(data.Structs, makeRenderStruct(v, namer, typer)...)
+		data.Structs = append(data.Structs, makeRenderFields(v, namer, typer, checker)...)
 	}
 	return
 }
@@ -76,82 +70,67 @@ func makeRenderMethod(method *Method, namer Namer, typer Typer) (renderMethod *R
 }
 
 func makeMethodIOName(field *Field, typer Typer) string {
-	if field.Struct {
-		return typer(field.Name, true, false)
-	} else if field.Array {
-		if field.Elem.Struct {
-			return typer(field.Name, true, true)
-		} else {
-			return typer(field.Elem.Type, false, true)
-		}
+	if field.Array {
+		return getNestedType(field, typer)
+	} else if field.Struct {
+		return typer(field.Type, true, false)
 	} else {
 		return typer(field.Type, false, false)
 	}
 }
 
-func makeRenderStruct(method *Method, namer Namer, typer Typer) (structs []*RenderStruct) {
-	if method.Input != nil {
-		structs = append(structs, fieldToRenderStruct(method.Input.Name, method.Input, namer, typer)...)
+func getNestedType(field *Field, typer Typer) string {
+	if field.Array {
+		return typer(getNestedType(field.Elem, typer), field.Struct, field.Array)
+	} else {
+		return typer(field.Type, field.Struct, field.Array)
 	}
-	if method.Output != nil {
-		structs = append(structs, fieldToRenderStruct(method.Output.Name, method.Output, namer, typer)...)
+}
+
+func makeRenderFields(method *Method, namer Namer, typer Typer, checker *renderFieldChecker) (renderFields []*RenderField) {
+	if method.Input != nil && (method.Input.Struct || (method.Input.Array && method.Input.Nested)) {
+		toRenderFields(method.Input, namer, typer, &renderFields, nil, checker)
+	}
+	if method.Output != nil && (method.Output.Struct || (method.Output.Array && method.Output.Nested)) {
+		toRenderFields(method.Output, namer, typer, &renderFields, nil, checker)
 	}
 	return
 }
 
-func fieldToRenderStruct(name string, field *Field, namer Namer, typer Typer) (structs []*RenderStruct) {
-	if !field.Struct {
-		return
-	}
-	rs := new(RenderStruct)
-	rs.Name = name
-	structs = append(structs, rs)
-	for _, v := range field.Fields {
-		if v.Struct {
-			tn := fmt.Sprintf("%s%s", name, strings.Title(v.Name))
-			rs.Fields = append(rs.Fields, &RenderField{
-				Name:        namer(v.Name),
-				Type:        typer(tn, true, false),
-				Description: v.Description,
-				Required:    false,
-				Json:        v.Name,
-			})
-			structs = append(structs, fieldToRenderStruct(tn, v, namer, typer)...)
-		} else if v.Array {
-			if v.Elem == nil {
-				continue
-			}
-			v = v.Elem
-			var _type string
-			if v.Struct {
-				t := fmt.Sprintf("%s%sItem", name, strings.Title(v.Name))
-				_type = typer(t, true, true)
-				structs = append(structs, fieldToRenderStruct(t, v, namer, typer)...)
-			} else if v.Array {
-				if v.Elem == nil {
-					continue
+func toRenderFields(field *Field, namer Namer, typer Typer, renderFields *[]*RenderField, parent *RenderField, checker *renderFieldChecker) {
+	if field.Array && field.Nested { // 处理嵌套数组对象
+		toRenderFields(field.Elem, namer, typer, renderFields, nil, checker)
+	} else {
+		renderField := new(RenderField)
+		name := field.Name
+		if field.Struct { // 处理对象
+			name = field.Type
+			for _, v := range field.Fields {
+				if v.Struct {
+					toRenderFields(v, namer, typer, renderFields, renderField, checker)
+				} else if v.Array && v.Nested {
+					toRenderFields(v.Elem, namer, typer, renderFields, renderField, checker)
+				} else {
+					toRenderFields(v, namer, typer, renderFields, renderField, checker)
 				}
-				v = v.Elem
-				t := fmt.Sprintf("%s%sItemElem", name, strings.Title(v.Name))
-				structs = append(structs, fieldToRenderStruct(t, v, namer, typer)...)
-			} else {
-				_type = typer(v.Type, false, true)
 			}
-			rs.Fields = append(rs.Fields, &RenderField{
-				Name:        namer(v.Name),
-				Type:        _type,
-				Description: v.Description,
-				Required:    false,
-				Json:        v.Name,
-			})
+		}
+		if field.Array { // 处理嵌套基础类型
+			renderField.Type = getNestedType(field, typer)
 		} else {
-			rs.Fields = append(rs.Fields, &RenderField{
-				Name:        namer(v.Name),
-				Type:        typer(v.Type, false, false),
-				Description: v.Description,
-				Required:    false,
-				Json:        v.Name,
-			})
+			renderField.Type = typer(field.Type, field.Struct, field.Array)
+		}
+		renderField.Name = namer(name)
+		renderField.Description = field.Description
+		renderField.Json = field.Name
+		if parent != nil {
+			parent.Fields = append(parent.Fields, renderField)
+		}
+		if field.Struct && !checker.Has(renderField.Name) {
+			if checker != nil {
+				checker.Add(renderField.Name)
+			}
+			*renderFields = append(*renderFields, renderField)
 		}
 	}
 	return
@@ -172,4 +151,23 @@ func Render(tpl string, data interface{}, formatter Formatter) (result string, e
 		return
 	}
 	return
+}
+
+func newRenderFieldChecker() *renderFieldChecker {
+	return &renderFieldChecker{
+		cache: map[string]bool{},
+	}
+}
+
+type renderFieldChecker struct {
+	cache map[string]bool
+}
+
+func (p *renderFieldChecker) Has(name string) bool {
+	_, ok := p.cache[name]
+	return ok
+}
+
+func (p *renderFieldChecker) Add(name string) {
+	p.cache[name] = true
 }
