@@ -313,14 +313,11 @@ func (p *API) addMethod(method, path, description string, info HandlerInfo, hand
 		Method:      method,
 		Description: description,
 	}
-	if p.models == nil {
-		p.models = new(exporter.Fields)
-	}
 	if handler.Type().NumIn() > 1 {
-		m.Input = p.exporter.ReflectFields("", "", "", nil, handler.Type().In(1), p.models, false)
+		m.Input = p.exporter.ReflectFields("", "", "", nil, handler.Type().In(1))
 	}
 	if handler.Type().NumOut() > 1 {
-		m.Output = p.exporter.ReflectFields("", "", "", nil, handler.Type().Out(0), p.models, false)
+		m.Output = p.exporter.ReflectFields("", "", "", nil, handler.Type().Out(0))
 	}
 	p.methods = append(p.methods, m)
 }

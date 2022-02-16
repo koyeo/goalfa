@@ -145,7 +145,7 @@ func getRenderFieldType(lang string, field *Field, renderPackages *RenderPackage
 			lib := field.BasicType.getMapping(lang)
 			if lib != nil {
 				_type = lib.Type
-				if lib.Package.From != "" {
+				if lib.Package != nil && lib.Package.From != "" {
 					if renderPackages != nil {
 						renderPackages.add(&RenderPackage{
 							Import: lib.Package.Import,

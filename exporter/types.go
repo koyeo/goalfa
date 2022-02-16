@@ -99,6 +99,11 @@ func (p Method) Fork() *Method {
 	return n
 }
 
+type Struct struct {
+	Name   string   `json:"name"`
+	Fields []*Field `json:"fields"`
+}
+
 type Field struct {
 	Name        string     `json:"name,omitempty"`
 	Param       string     `json:"param,omitempty"`

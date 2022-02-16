@@ -172,7 +172,7 @@ func (p *Exporter) initBasicTypes() {
 }
 
 // ReflectFields 反射转换输入输出的字段信息
-func (p *Exporter) ReflectFields(name, param, label string, validator *Validator, t reflect.Type, models *Fields, isModel bool) (field *Field) {
+func (p *Exporter) ReflectFields(name, param, label string, validator *Validator, t reflect.Type) (field *Field) {
 	t = utils.TypeElem(t)
 	field = new(Field)
 	field.Name = name
@@ -189,14 +189,13 @@ func (p *Exporter) ReflectFields(name, param, label string, validator *Validator
 	
 	if t.Kind() == reflect.Struct && basicType == nil {
 		field.Struct = true
-		models.Add(field)
 		for i := 0; i < t.NumField(); i++ {
 			sf := t.Field(i)
 			_name := sf.Name
 			_param := p.getParam(sf)
 			_label := p.getFieldLabel(sf)
 			_validator := p.getFieldValidator(sf)
-			_field := p.ReflectFields(_name, _param, _label, _validator, sf.Type, models, true)
+			_field := p.ReflectFields(_name, _param, _label, _validator, sf.Type)
 			if _field.Struct || _field.Nested {
 				field.Nested = true
 			}
@@ -204,7 +203,7 @@ func (p *Exporter) ReflectFields(name, param, label string, validator *Validator
 		}
 	} else if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
 		field.Array = true
-		field.Elem = p.ReflectFields("", "", label, validator, t.Elem(), models, true)
+		field.Elem = p.ReflectFields("", "", label, validator, t.Elem())
 		if field.Elem.Struct || field.Elem.Nested {
 			field.Nested = true
 		}
