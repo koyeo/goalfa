@@ -6,8 +6,9 @@ import (
 )
 
 type RenderData struct {
-	Methods []*RenderMethod
-	Structs []*RenderField
+	Packages []*RenderPackage
+	Methods  []*RenderMethod
+	Structs  []*RenderStruct
 }
 
 type RenderMethod struct {
@@ -19,13 +20,57 @@ type RenderMethod struct {
 	Path        string
 }
 
-type RenderField struct {
+type RenderStruct struct {
 	Name        string
 	Type        string
 	Description string
-	Json        string
-	Required    bool
 	Fields      []*RenderField
+}
+
+type RenderField struct {
+	Name        string
+	Param       string
+	Type        string
+	Description string
+	Required    bool
+	Label       string
+}
+
+type RenderPackage struct {
+	Import        string
+	From          string
+	importList    []string
+	importMapping map[string]bool
+}
+
+func (p *RenderPackage) addImport(i string) {
+	if p.importMapping == nil {
+		p.importMapping = map[string]bool{}
+	}
+	_, ok := p.importMapping[i]
+	if ok {
+		return
+	}
+	p.importMapping[i] = true
+	p.importList = append(p.importList, i)
+}
+
+type RenderPackages struct {
+	list    []*RenderPackage
+	mapping map[string]*RenderPackage
+}
+
+func (p *RenderPackages) add(item *RenderPackage) {
+	if p.mapping == nil {
+		p.mapping = map[string]*RenderPackage{}
+	}
+	_, ok := p.mapping[item.From]
+	if ok {
+		p.mapping[item.From].addImport(item.Import)
+		return
+	}
+	p.mapping[item.From] = item
+	p.list = append(p.list, item)
 }
 
 type Namer func(string) string
@@ -44,93 +89,116 @@ var EmptyFormatter Formatter = func(s string) (string, error) {
 	return s, nil
 }
 
-func MakeRenderData(methods []*Method, namer Namer, typer Typer) (data *RenderData) {
+func MakeRenderData(lang string, methods []*Method, namer Namer, typer Typer) (data *RenderData) {
 	data = new(RenderData)
 	checker := newRenderFieldChecker()
+	renderPackages := new(RenderPackages)
 	for _, v := range methods {
-		data.Methods = append(data.Methods, makeRenderMethod(v, namer, typer))
-		data.Structs = append(data.Structs, makeRenderFields(v, namer, typer, checker)...)
+		data.Methods = append(data.Methods, makeRenderMethod(lang, v, namer, typer, renderPackages))
+		data.Structs = append(data.Structs, makeRenderStructs(lang, v, namer, typer, checker, renderPackages)...)
+		data.Packages = renderPackages.list
 	}
 	return
 }
 
-func makeRenderMethod(method *Method, namer Namer, typer Typer) (renderMethod *RenderMethod) {
+func makeRenderMethod(lang string, method *Method, namer Namer, typer Typer, renderPackages *RenderPackages) (renderMethod *RenderMethod) {
 	renderMethod = new(RenderMethod)
 	renderMethod.Name = namer(method.Name)
 	renderMethod.Description = method.Description
 	renderMethod.Method = method.Method
 	renderMethod.Path = method.Path
 	if method.Input != nil {
-		renderMethod.InputType = makeMethodIOName(method.Input, typer)
+		renderMethod.InputType = makeMethodIOName(lang, method.Input, typer, renderPackages)
 	}
 	if method.Output != nil {
-		renderMethod.OutputType = makeMethodIOName(method.Output, typer)
+		renderMethod.OutputType = makeMethodIOName(lang, method.Output, typer, renderPackages)
 	}
 	return
 }
 
-func makeMethodIOName(field *Field, typer Typer) string {
+func makeMethodIOName(lang string, field *Field, typer Typer, renderPackages *RenderPackages) string {
 	if field.Array {
-		return getNestedType(field, typer)
+		return parseNestedType(lang, field, typer, renderPackages)
 	} else if field.Struct {
-		return typer(field.Type, true, false)
+		return typer(getRenderFieldType(lang, field, renderPackages), true, false)
 	} else {
-		return typer(field.Type, false, false)
+		return typer(getRenderFieldType(lang, field, renderPackages), false, false)
 	}
 }
 
-func getNestedType(field *Field, typer Typer) string {
+func parseNestedType(lang string, field *Field, typer Typer, renderPackages *RenderPackages) string {
 	if field.Array {
-		return typer(getNestedType(field.Elem, typer), field.Struct, field.Array)
+		return typer(parseNestedType(lang, field.Elem, typer, renderPackages), field.Struct, field.Array)
 	} else {
-		return typer(field.Type, field.Struct, field.Array)
+		return typer(getRenderFieldType(lang, field, renderPackages), field.Struct, field.Array)
 	}
 }
 
-func makeRenderFields(method *Method, namer Namer, typer Typer, checker *renderFieldChecker) (renderFields []*RenderField) {
-	if method.Input != nil && (method.Input.Struct || (method.Input.Array && method.Input.Nested)) {
-		toRenderFields(method.Input, namer, typer, &renderFields, nil, checker)
-	}
-	if method.Output != nil && (method.Output.Struct || (method.Output.Array && method.Output.Nested)) {
-		toRenderFields(method.Output, namer, typer, &renderFields, nil, checker)
-	}
-	return
-}
-
-func toRenderFields(field *Field, namer Namer, typer Typer, renderFields *[]*RenderField, parent *RenderField, checker *renderFieldChecker) {
-	if field.Array && field.Nested { // 处理嵌套数组对象
-		toRenderFields(field.Elem, namer, typer, renderFields, nil, checker)
-	} else {
-		renderField := new(RenderField)
-		name := field.Name
-		if field.Struct { // 处理对象
-			name = field.Type
-			for _, v := range field.Fields {
-				if v.Struct {
-					toRenderFields(v, namer, typer, renderFields, renderField, checker)
-				} else if v.Array && v.Nested {
-					toRenderFields(v.Elem, namer, typer, renderFields, renderField, checker)
-				} else {
-					toRenderFields(v, namer, typer, renderFields, renderField, checker)
+func getRenderFieldType(lang string, field *Field, renderPackages *RenderPackages) string {
+	_type := field.Type
+	if field.basicType != nil {
+		if lang == Go {
+			renderPackages.add(&RenderPackage{
+				From: field.basicType._package,
+			})
+		} else {
+			lib := field.basicType.getMapping(lang)
+			if lib != nil {
+				_type = lib.Type
+				if lib.Package.From != "" {
+					if renderPackages != nil {
+						renderPackages.add(&RenderPackage{
+							Import: lib.Package.Import,
+							From:   lib.Package.From,
+						})
+					}
 				}
 			}
 		}
-		if field.Array { // 处理嵌套基础类型
-			renderField.Type = getNestedType(field, typer)
-		} else {
-			renderField.Type = typer(field.Type, field.Struct, field.Array)
+	}
+	return _type
+}
+
+func makeRenderStructs(lang string, method *Method, namer Namer, typer Typer,
+	checker *renderFieldChecker, renderPackages *RenderPackages) (renderFields []*RenderStruct) {
+	if method.Input != nil && (method.Input.Struct || (method.Input.Array && method.Input.Nested)) {
+		toRenderStructs(lang, method.Input, namer, typer, checker, &renderFields, renderPackages)
+	}
+	if method.Output != nil && (method.Output.Struct || (method.Output.Array && method.Output.Nested)) {
+		toRenderStructs(lang, method.Output, namer, typer, checker, &renderFields, renderPackages)
+	}
+	return
+}
+
+func toRenderStructs(lang string, field *Field, namer Namer, typer Typer, checker *renderFieldChecker,
+	renderStructs *[]*RenderStruct, renderPackages *RenderPackages) {
+	if field.Array && field.Nested { // 处理嵌套数组对象
+		toRenderStructs(lang, field.Elem, namer, typer, checker, renderStructs, renderPackages)
+	} else if field.Struct { // 处理对象
+		renderStruct := new(RenderStruct)
+		name := namer(field.Type)
+		renderStruct.Name = name
+		renderStruct.Description = field.Description
+		if !checker.Has(name) {
+			checker.Add(name)
+			*renderStructs = append(*renderStructs, renderStruct)
 		}
-		renderField.Name = namer(name)
-		renderField.Description = field.Description
-		renderField.Json = field.Name
-		if parent != nil {
-			parent.Fields = append(parent.Fields, renderField)
-		}
-		if field.Struct && !checker.Has(renderField.Name) {
-			if checker != nil {
-				checker.Add(renderField.Name)
+		for _, v := range field.Fields {
+			renderField := new(RenderField)
+			renderField.Name = namer(v.Name)
+			renderField.Param = v.Param
+			renderField.Type = parseNestedType(lang, v, typer, renderPackages)
+			renderField.Description = v.Description
+			renderField.Label = v.Label
+			if v.Validator != nil {
+				renderField.Required = v.Validator.Required
 			}
-			*renderFields = append(*renderFields, renderField)
+			renderStruct.Fields = append(renderStruct.Fields, renderField)
+			if v.Struct {
+				toRenderStructs(lang, v, namer, typer, checker, renderStructs, renderPackages)
+			} else if v.Array && v.Nested {
+				toRenderStructs(lang, v.Elem, namer, typer, checker, renderStructs, renderPackages)
+			}
 		}
 	}
 	return

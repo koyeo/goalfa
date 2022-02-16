@@ -8,6 +8,11 @@ import (
 type FooMock struct {
 }
 
+func (f FooMock) PostShop(ctx context.Context, in *Shop) (out *Shop, err error) {
+	out = in
+	return
+}
+
 func (f FooMock) Ping2(ctx context.Context) (out decimal.Decimal, err error) {
 	out = decimal.NewFromFloat(3.14)
 	return

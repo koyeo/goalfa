@@ -35,17 +35,28 @@ func main() {
 				Host: "http://localhost:8080",
 			},
 		},
+		Makers: map[string]exporter.Maker{
+			"python": exporter.GoMaker{},
+		},
 		BasicTypes: []exporter.BasicType{
 			{
 				Elem: decimal.Decimal{},
-				Mapping: map[string]string{
-					"ts": "string",
+				Mapping: map[string]exporter.Library{
+					"ts": {
+						Type: "Decimal",
+						Package: exporter.Package{
+							Import: "Decimal",
+							From:   "decimal.js",
+						},
+					},
 				},
 			},
 			{
 				Elem: service.CID{},
-				Mapping: map[string]string{
-					"ts": "string",
+				Mapping: map[string]exporter.Library{
+					"ts": {
+						Type: "string",
+					},
 				},
 			},
 		},

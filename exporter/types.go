@@ -1,15 +1,57 @@
 package exporter
 
 type Options struct {
-	Project    string      `json:"project"`
-	Envs       []Env       `json:"envs"`
-	BasicTypes []BasicType `json:"-"`
+	Project    string           `json:"project"`
+	Envs       []Env            `json:"envs"`
+	BasicTypes []BasicType      `json:"-"`
+	Makers     map[string]Maker `json:"-"`
 }
 
 type BasicType struct {
 	Elem     interface{}
 	Packages map[string]string
-	Mapping  map[string]string
+	Mapping  map[string]Library
+	_package string
+}
+
+func (p BasicType) Fork() *BasicType {
+	n := new(BasicType)
+	n.Elem = p.Elem
+	if p.Packages != nil {
+		n.Packages = map[string]string{}
+		for k, v := range p.Packages {
+			n.Packages[k] = v
+		}
+	}
+	if p.Mapping != nil {
+		n.Mapping = map[string]Library{}
+		for k, v := range p.Mapping {
+			n.Mapping[k] = v
+		}
+	}
+	n._package = p._package
+	return n
+}
+
+func (p BasicType) getMapping(lang string) *Library {
+	if p.Mapping == nil {
+		return nil
+	}
+	v, ok := p.Mapping[lang]
+	if !ok {
+		return nil
+	}
+	return &v
+}
+
+type Library struct {
+	Type    string
+	Package Package
+}
+
+type Package struct {
+	Import string
+	From   string
 }
 
 type Env struct {
@@ -45,6 +87,7 @@ func (p Method) Fork() *Method {
 
 type Field struct {
 	Name        string     `json:"name,omitempty"`
+	Param       string     `json:"param,omitempty"`
 	Label       string     `json:"label,omitempty"`
 	Type        string     `json:"type,omitempty"`
 	Description string     `json:"description,omitempty"`
@@ -56,25 +99,29 @@ type Field struct {
 	Elem        *Field     `json:"elem,omitempty"`      // 描述 Slice/Array 子元素
 	Validator   *Validator `json:"validator,omitempty"` // 定义校验器
 	Form        string     `json:"form,omitempty"`      // 定义表单组件
+	basicType   *BasicType
 }
 
 func (p Field) Fork() *Field {
 	n := new(Field)
 	n.Name = p.Name
+	n.Param = p.Param
 	n.Label = p.Label
 	n.Type = p.Type
 	n.Description = p.Description
 	n.Array = p.Array
 	n.Struct = p.Struct
+	n.Nested = p.Nested
 	n.Origin = p.Origin
-	n.Validator = p.Validator
-	n.Form = p.Form
-	if p.Elem != nil {
-		n.Elem = p.Elem.Fork()
-	}
 	for _, v := range p.Fields {
 		n.Fields = append(n.Fields, v.Fork())
 	}
+	if p.Elem != nil {
+		n.Elem = p.Elem.Fork()
+	}
+	n.Validator = p.Validator
+	n.Form = p.Form
+	n.basicType = p.basicType
 	return n
 }
 

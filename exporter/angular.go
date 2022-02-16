@@ -18,8 +18,15 @@ var AngularTyper Typer = func(s string, isStruct, isArray bool) string {
 	return s
 }
 
-func (a AngularMaker) Make(pkg string, methods []*Method) (files []*File, err error) {
-	data := MakeRenderData(methods, EmptyNamer, AngularTyper)
+func (a AngularMaker) Make(lang string, exporter *Exporter, methods []*Method) (files []*File, err error) {
+	data := MakeRenderData(lang, methods, EmptyNamer, AngularTyper)
+	for _, v := range data.Structs {
+		for _, vv := range v.Fields {
+			if vv.Param == "" {
+				vv.Param = vv.Name
+			}
+		}
+	}
 	serviceFile := new(File)
 	serviceFile.Name = "service.make.ts"
 	serviceFile.Content, err = Render(angularServiceTpl, data, EmptyFormatter)
@@ -68,7 +75,7 @@ export interface HttpOptions {
 
 {% for struct in Structs %}
 export interface {{ struct.Name }} {
-{% for field in struct.Fields %}    {{field.Name}}?:{{field.Type}},
+{% for field in struct.Fields %}    {{field.Param}}?: {{field.Type}}, {% if field.Label or field.Description %}// {{field.Label}} {{field.Description}}{% endif %}
 {% endfor %}}
 {% endfor %}
 `

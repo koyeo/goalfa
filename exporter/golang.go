@@ -41,21 +41,15 @@ var GoFormatter Formatter = func(s string) (r string, err error) {
 type GoMaker struct {
 }
 
-func (g GoMaker) Make(pkg string, methods []*Method) (files []*File, err error) {
-	data := MakeRenderData(methods, GoNamer, GoTyper)
-	methodsFile := new(File)
-	methodsFile.Name = "methods.make.go"
-	methodsFile.Content, err = Render(goServiceTpl, data, GoFormatter)
+func (g GoMaker) Make(lang string, exporter *Exporter, methods []*Method) (files []*File, err error) {
+	data := MakeRenderData(lang, methods, GoNamer, GoTyper)
+	serviceFile := new(File)
+	serviceFile.Name = "service.make.go"
+	serviceFile.Content, err = Render(goServiceTpl, data, GoFormatter)
 	if err != nil {
 		return
 	}
-	typesFile := new(File)
-	typesFile.Name = "types.make.go"
-	typesFile.Content, err = Render(goStructTpl, data, GoFormatter)
-	if err != nil {
-		return
-	}
-	files = append(files, methodsFile, typesFile)
+	files = append(files, serviceFile, serviceFile)
 	return
 }
 
@@ -63,6 +57,9 @@ const goServiceTpl = `
 package sdk
 
 import "context"
+{% for package in Packages %}
+import "{{ package.From }}" // 自动注入
+{% endfor %}
 
 func request(method string, path string) {
 
@@ -75,14 +72,10 @@ func {{ method.Name }}(ctx context.Context{% if method.InputType !='' %},in {{ m
 	return
 }
 {% endfor %}
-`
-
-const goStructTpl = `
-package sdk
 
 {% for struct in Structs %}
 type {{ struct.Name }} struct {
-	{% for field in struct.Fields %} {{ field.Name }} {{ field.Type }} ` + "`" + `json:"{{ field.Json }}"` + "`" + `   {% if field.Description %}// {{ field.Description }}{% endif %}
+	{% for field in struct.Fields %} {{ field.Name }} {{ field.Type }} ` + "{% if field.Param != '' %}`" + `json:"{{ field.Param }}"` + "`{% endif %}" + `   {% if field.Description or field.Label %}// {{ field.Label }} {{ field.Description }}{% endif %}
     {% endfor %}}
 {% endfor %}
 `

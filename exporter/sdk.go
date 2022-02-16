@@ -24,7 +24,7 @@ type SDK struct {
 	methods []*Method
 }
 
-func (p SDK) Make(lang, pkg string) ([]byte, error) {
+func (p SDK) Make(lang, pkg string, exporter *Exporter) ([]byte, error) {
 	var maker Maker
 	switch lang {
 	case "go":
@@ -36,7 +36,11 @@ func (p SDK) Make(lang, pkg string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unsupport sdk lang: '%s'", lang)
 	}
-	files, err := maker.Make(pkg, p.methods)
+	var methods []*Method
+	for _, v := range p.methods {
+		methods = append(methods, v.Fork())
+	}
+	files, err := maker.Make(lang, exporter, methods)
 	if err != nil {
 		return nil, err
 	}

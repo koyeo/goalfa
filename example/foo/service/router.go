@@ -20,5 +20,6 @@ func (f FooRouter) Routes() []buck.Route {
 		{Handler: f.service.TestGetArray},
 		{Handler: f.service.TestPostArray},
 		{Handler: f.service.Ping2},
+		{Handler: f.service.PostShop},
 	}
 }

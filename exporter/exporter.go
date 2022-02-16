@@ -28,7 +28,7 @@ type Exporter struct {
 	Name       string
 	Package    string
 	Methods    []*Method
-	basicTypes map[string]bool
+	basicTypes map[string]*BasicType
 }
 
 func (p *Exporter) Init(version string) {
@@ -91,7 +91,7 @@ func (p Exporter) printAddress() {
 // 导出 SDK 代码
 func (p Exporter) sdkHandler(c *gin.Context) {
 	sdk := NewSDK(p.Methods)
-	data, err := sdk.Make(c.Query("lang"), c.Query("package"))
+	data, err := sdk.Make(c.Query("lang"), c.Query("package"), &p)
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -120,8 +120,8 @@ func (p Exporter) convertMethodTypes(lang string) []*Method {
 	case "ts":
 		for _, v := range p.Methods {
 			n := v.Fork()
-			p.toTypescriptFieldType(n.Input)
-			p.toTypescriptFieldType(n.Output)
+			p.toTypescriptFieldType(lang, n.Input)
+			p.toTypescriptFieldType(lang, n.Output)
 			methods = append(methods, n)
 		}
 	default:
@@ -130,17 +130,17 @@ func (p Exporter) convertMethodTypes(lang string) []*Method {
 	return methods
 }
 
-func (p Exporter) toTypescriptFieldType(field *Field) {
+func (p Exporter) toTypescriptFieldType(lang string, field *Field) {
 	if field == nil {
 		return
 	}
 	field.Origin = field.Type
-	field.Type = typescriptTypeConverter(field.Type)
+	field.Type = typescriptTypeConverter(getRenderFieldType(lang, field, nil))
 	for _, v := range field.Fields {
-		p.toTypescriptFieldType(v)
+		p.toTypescriptFieldType(lang, v)
 	}
 	if field.Elem != nil {
-		p.toTypescriptFieldType(field.Elem)
+		p.toTypescriptFieldType(lang, field.Elem)
 	}
 }
 
@@ -150,29 +150,40 @@ func (p *Exporter) initBasicTypes() {
 	}
 	for _, v := range p.options.BasicTypes {
 		if p.basicTypes == nil {
-			p.basicTypes = map[string]bool{}
+			p.basicTypes = map[string]*BasicType{}
 		}
 		r := reflect.ValueOf(v.Elem)
-		p.basicTypes[fmt.Sprintf("%s@%s", r.Type().PkgPath(), r.Type().String())] = true
+		basicType := v.Fork()
+		basicType._package = r.Type().PkgPath()
+		p.basicTypes[fmt.Sprintf("%s@%s", basicType._package, r.Type().String())] = basicType
 	}
 }
 
 // ReflectFields 反射转换输入输出的字段信息
-func (p Exporter) ReflectFields(name, label string, validator *Validator, t reflect.Type) (field *Field) {
+func (p *Exporter) ReflectFields(name, param, label string, validator *Validator, t reflect.Type) (field *Field) {
 	t = utils.TypeElem(t)
 	field = new(Field)
 	field.Name = name
+	field.Param = param
 	field.Label = label
-	field.Type = p.getType(t)
+	basicType := p.getBasicType(t)
+	if basicType != nil {
+		field.Type = t.String()
+		field.basicType = basicType
+	} else {
+		field.Type = p.getType(t)
+	}
 	field.Validator = validator
-	if t.Kind() == reflect.Struct && !p.isBasicType(t) {
+	
+	if t.Kind() == reflect.Struct && basicType == nil {
 		field.Struct = true
 		for i := 0; i < t.NumField(); i++ {
 			sf := t.Field(i)
-			_name := p.getName(sf)
+			_name := sf.Name
+			_param := p.getParam(sf)
 			_label := p.getFieldLabel(sf)
 			_validator := p.getFieldValidator(sf)
-			_field := p.ReflectFields(_name, _label, _validator, sf.Type)
+			_field := p.ReflectFields(_name, _param, _label, _validator, sf.Type)
 			if _field.Struct || _field.Nested {
 				field.Nested = true
 			}
@@ -180,7 +191,7 @@ func (p Exporter) ReflectFields(name, label string, validator *Validator, t refl
 		}
 	} else if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
 		field.Array = true
-		field.Elem = p.ReflectFields("", label, validator, t.Elem())
+		field.Elem = p.ReflectFields("", "", label, validator, t.Elem())
 		if field.Elem.Struct || field.Elem.Nested {
 			field.Nested = true
 		}
@@ -188,20 +199,18 @@ func (p Exporter) ReflectFields(name, label string, validator *Validator, t refl
 	return
 }
 
-func (p Exporter) isBasicType(t reflect.Type) bool {
-	fmt.Println("nil", p.basicTypes)
+func (p Exporter) getBasicType(t reflect.Type) *BasicType {
 	if p.basicTypes == nil {
-		return false
+		return nil
 	}
-	fmt.Println(fmt.Sprintf("%s@%s", t.PkgPath(), t.String()))
-	_, ok := p.basicTypes[fmt.Sprintf("%s@%s", t.PkgPath(), t.String())]
-	return ok
+	v, ok := p.basicTypes[fmt.Sprintf("%s@%s", t.PkgPath(), t.String())]
+	if !ok {
+		return nil
+	}
+	return v
 }
 
 func (p Exporter) getType(t reflect.Type) string {
-	if p.isBasicType(t) {
-		return t.String()
-	}
 	s := t.String()
 	if strings.Contains(s, ".") {
 		s = strings.Split(s, ".")[1]
@@ -229,11 +238,7 @@ func (p Exporter) newIfNoValidator(validator *Validator) *Validator {
 	return validator
 }
 
-func (p Exporter) getName(field reflect.StructField) string {
+func (p Exporter) getParam(field reflect.StructField) string {
 	n := field.Tag.Get("json")
-	n = strings.ReplaceAll(n, ",omitempty", "")
-	if n == "" {
-		n = field.Name
-	}
-	return n
+	return strings.ReplaceAll(n, ",omitempty", "")
 }
