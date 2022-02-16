@@ -58,7 +58,7 @@ type Product struct {
 }
 
 type Spec struct {
-	Cid       CID             `json:"cid"`
+	//Cid       CID             `json:"cid"`
 	Title     string          `json:"title,omitempty" label:"规格标题" json:"title,omitempty"`
 	Inventory int             `json:"inventory,omitempty" label:"规格库存" json:"inventory,omitempty"`
 	Price     decimal.Decimal `label:"规格价格" json:"price"`
