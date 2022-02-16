@@ -22,18 +22,22 @@ func NewExporter(addr string, options *Options) *Exporter {
 }
 
 type Exporter struct {
-	version    string
-	addr       string
-	options    *Options
-	Name       string
-	Package    string
-	Methods    []*Method
-	basicTypes map[string]*BasicType
+	version string
+	addr    string
+	options *Options
+	Name    string
+	Package string
+	methods []*Method
+	basics  map[string]*BasicType
+	models  []*Field
 }
 
-func (p *Exporter) Init(version string) {
+func (p *Exporter) Init(version string, methods []*Method, models *Fields) {
 	p.version = version
-	p.initBasicTypes()
+	p.methods = methods
+	if models != nil {
+		p.models = models.All()
+	}
 }
 
 func (p Exporter) Run() {
@@ -48,7 +52,6 @@ func (p Exporter) Run() {
 	}))
 	engine.GET("/sdk", p.sdkHandler)
 	engine.GET("/protocol", p.protocolHandler)
-	// engine.GET("/struct", p.protocolHandler)
 	engine.StaticFS("/exporter", assets.Root)
 	engine.GET("/", func(c *gin.Context) {
 		c.Redirect(http.StatusMovedPermanently, "/exporter/index.html")
@@ -90,8 +93,8 @@ func (p Exporter) printAddress() {
 
 // 导出 SDK 代码
 func (p Exporter) sdkHandler(c *gin.Context) {
-	sdk := NewSDK(p.Methods)
-	data, err := sdk.Make(c.Query("lang"), c.Query("package"), &p)
+	sdk := NewSDK(p.methods)
+	data, err := sdk.Make(c.Query("lang"), c.Query("package"))
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -100,9 +103,11 @@ func (p Exporter) sdkHandler(c *gin.Context) {
 }
 
 type ProtocolOutput struct {
-	Version string    `json:"version"`
-	Options *Options  `json:"options"`
-	Methods []*Method `json:"methods"`
+	Version string       `json:"version"`
+	Options *Options     `json:"options"`
+	Methods []*Method    `json:"methods"`
+	Structs []*Field     `json:"structs,omitempty"`
+	Basics  []*BasicType `json:"basics,omitempty"`
 }
 
 // 导出接口描述协议
@@ -111,6 +116,12 @@ func (p Exporter) protocolHandler(c *gin.Context) {
 	out.Version = p.version
 	out.Options = p.options
 	out.Methods = p.convertMethodTypes(c.Query("lang"))
+	basics := new(BasicTypes)
+	for _, v := range p.basics {
+		basics.Add(v)
+	}
+	out.Basics = basics.All()
+	out.Structs = p.models
 	c.JSON(200, out)
 }
 
@@ -118,29 +129,29 @@ func (p Exporter) convertMethodTypes(lang string) []*Method {
 	methods := make([]*Method, 0)
 	switch lang {
 	case "ts":
-		for _, v := range p.Methods {
+		for _, v := range p.methods {
 			n := v.Fork()
-			p.toTypescriptFieldType(lang, n.Input)
-			p.toTypescriptFieldType(lang, n.Output)
+			p.toTsProtocolFieldType(n.Input)
+			p.toTsProtocolFieldType(n.Output)
 			methods = append(methods, n)
 		}
 	default:
-		methods = p.Methods
+		methods = p.methods
 	}
 	return methods
 }
 
-func (p Exporter) toTypescriptFieldType(lang string, field *Field) {
+func (p Exporter) toTsProtocolFieldType(field *Field) {
 	if field == nil {
 		return
 	}
 	field.Origin = field.Type
-	field.Type = typescriptTypeConverter(getRenderFieldType(lang, field, nil))
+	field.Type = tsProtocolTypeConverter(field.Type)
 	for _, v := range field.Fields {
-		p.toTypescriptFieldType(lang, v)
+		p.toTsProtocolFieldType(v)
 	}
 	if field.Elem != nil {
-		p.toTypescriptFieldType(lang, field.Elem)
+		p.toTsProtocolFieldType(field.Elem)
 	}
 }
 
@@ -149,18 +160,19 @@ func (p *Exporter) initBasicTypes() {
 		return
 	}
 	for _, v := range p.options.BasicTypes {
-		if p.basicTypes == nil {
-			p.basicTypes = map[string]*BasicType{}
+		if p.basics == nil {
+			p.basics = map[string]*BasicType{}
 		}
 		r := reflect.ValueOf(v.Elem)
 		basicType := v.Fork()
-		basicType._package = r.Type().PkgPath()
-		p.basicTypes[fmt.Sprintf("%s@%s", basicType._package, r.Type().String())] = basicType
+		basicType.Package = r.Type().PkgPath()
+		basicType.Type = r.Type().String()
+		p.basics[fmt.Sprintf("%s@%s", basicType.Package, r.Type().String())] = basicType
 	}
 }
 
 // ReflectFields 反射转换输入输出的字段信息
-func (p *Exporter) ReflectFields(name, param, label string, validator *Validator, t reflect.Type) (field *Field) {
+func (p *Exporter) ReflectFields(name, param, label string, validator *Validator, t reflect.Type, models *Fields, isModel bool) (field *Field) {
 	t = utils.TypeElem(t)
 	field = new(Field)
 	field.Name = name
@@ -169,7 +181,7 @@ func (p *Exporter) ReflectFields(name, param, label string, validator *Validator
 	basicType := p.getBasicType(t)
 	if basicType != nil {
 		field.Type = t.String()
-		field.basicType = basicType
+		field.BasicType = basicType
 	} else {
 		field.Type = p.getType(t)
 	}
@@ -177,13 +189,14 @@ func (p *Exporter) ReflectFields(name, param, label string, validator *Validator
 	
 	if t.Kind() == reflect.Struct && basicType == nil {
 		field.Struct = true
+		models.Add(field)
 		for i := 0; i < t.NumField(); i++ {
 			sf := t.Field(i)
 			_name := sf.Name
 			_param := p.getParam(sf)
 			_label := p.getFieldLabel(sf)
 			_validator := p.getFieldValidator(sf)
-			_field := p.ReflectFields(_name, _param, _label, _validator, sf.Type)
+			_field := p.ReflectFields(_name, _param, _label, _validator, sf.Type, models, true)
 			if _field.Struct || _field.Nested {
 				field.Nested = true
 			}
@@ -191,7 +204,7 @@ func (p *Exporter) ReflectFields(name, param, label string, validator *Validator
 		}
 	} else if t.Kind() == reflect.Slice || t.Kind() == reflect.Array {
 		field.Array = true
-		field.Elem = p.ReflectFields("", "", label, validator, t.Elem())
+		field.Elem = p.ReflectFields("", "", label, validator, t.Elem(), models, true)
 		if field.Elem.Struct || field.Elem.Nested {
 			field.Nested = true
 		}
@@ -200,10 +213,10 @@ func (p *Exporter) ReflectFields(name, param, label string, validator *Validator
 }
 
 func (p Exporter) getBasicType(t reflect.Type) *BasicType {
-	if p.basicTypes == nil {
+	if p.basics == nil {
 		return nil
 	}
-	v, ok := p.basicTypes[fmt.Sprintf("%s@%s", t.PkgPath(), t.String())]
+	v, ok := p.basics[fmt.Sprintf("%s@%s", t.PkgPath(), t.String())]
 	if !ok {
 		return nil
 	}

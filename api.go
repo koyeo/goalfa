@@ -25,6 +25,8 @@ type API struct {
 	routeTable *RouteTable
 	exporter   *exporter.Exporter
 	methods    []*exporter.Method
+	basics     *exporter.BasicTypes
+	models     *exporter.Fields
 }
 
 func (p *API) SetVersion(version string) {
@@ -63,7 +65,7 @@ func (p *API) Run(addr string) {
 		}
 	}
 	if p.exporter != nil {
-		p.exporter.Methods = p.methods
+		p.exporter.Init(p.version, p.methods, p.models)
 		p.exporter.Run()
 	}
 	err = p.engine.Run(addr)
@@ -311,11 +313,14 @@ func (p *API) addMethod(method, path, description string, info HandlerInfo, hand
 		Method:      method,
 		Description: description,
 	}
+	if p.models == nil {
+		p.models = new(exporter.Fields)
+	}
 	if handler.Type().NumIn() > 1 {
-		m.Input = p.exporter.ReflectFields("", "", "", nil, handler.Type().In(1))
+		m.Input = p.exporter.ReflectFields("", "", "", nil, handler.Type().In(1), p.models, false)
 	}
 	if handler.Type().NumOut() > 1 {
-		m.Output = p.exporter.ReflectFields("", "", "", nil, handler.Type().Out(0))
+		m.Output = p.exporter.ReflectFields("", "", "", nil, handler.Type().Out(0), p.models, false)
 	}
 	p.methods = append(p.methods, m)
 }

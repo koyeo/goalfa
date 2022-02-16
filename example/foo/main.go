@@ -42,21 +42,13 @@ func main() {
 			{
 				Elem: decimal.Decimal{},
 				Mapping: map[string]exporter.Library{
-					"ts": {
-						Type: "Decimal",
-						Package: exporter.Package{
-							Import: "Decimal",
-							From:   "decimal.js",
-						},
-					},
+					"ts": {Type: "string"},
 				},
 			},
 			{
 				Elem: service.CID{},
 				Mapping: map[string]exporter.Library{
-					"ts": {
-						Type: "string",
-					},
+					"ts": {Type: "string"},
 				},
 			},
 		},

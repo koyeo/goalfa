@@ -8,28 +8,22 @@ type Options struct {
 }
 
 type BasicType struct {
-	Elem     interface{}
-	Packages map[string]string
-	Mapping  map[string]Library
-	_package string
+	Elem    interface{}        `json:"-"`
+	Type    string             `json:"type"`
+	Package string             `json:"package,omitempty"`
+	Mapping map[string]Library `json:"mapping,omitempty"`
 }
 
 func (p BasicType) Fork() *BasicType {
 	n := new(BasicType)
 	n.Elem = p.Elem
-	if p.Packages != nil {
-		n.Packages = map[string]string{}
-		for k, v := range p.Packages {
-			n.Packages[k] = v
-		}
-	}
 	if p.Mapping != nil {
 		n.Mapping = map[string]Library{}
 		for k, v := range p.Mapping {
 			n.Mapping[k] = v
 		}
 	}
-	n._package = p._package
+	n.Package = p.Package
 	return n
 }
 
@@ -44,14 +38,34 @@ func (p BasicType) getMapping(lang string) *Library {
 	return &v
 }
 
+type BasicTypes struct {
+	list    []*BasicType
+	mapping map[string]bool
+}
+
+func (p *BasicTypes) Add(item *BasicType) {
+	if p.mapping == nil {
+		p.mapping = map[string]bool{}
+	}
+	if _, ok := p.mapping[item.Type]; ok {
+		return
+	}
+	p.mapping[item.Type] = true
+	p.list = append(p.list, item)
+}
+
+func (p BasicTypes) All() []*BasicType {
+	return p.list
+}
+
 type Library struct {
-	Type    string
-	Package Package
+	Type    string   `json:"type,omitempty"`
+	Package *Package `json:"package,omitempty"`
 }
 
 type Package struct {
-	Import string
-	From   string
+	Import string `json:"import,omitempty"`
+	From   string `json:"from,omitempty"`
 }
 
 type Env struct {
@@ -99,7 +113,7 @@ type Field struct {
 	Elem        *Field     `json:"elem,omitempty"`      // 描述 Slice/Array 子元素
 	Validator   *Validator `json:"validator,omitempty"` // 定义校验器
 	Form        string     `json:"form,omitempty"`      // 定义表单组件
-	basicType   *BasicType
+	BasicType   *BasicType `json:"-"`
 }
 
 func (p Field) Fork() *Field {
@@ -121,8 +135,28 @@ func (p Field) Fork() *Field {
 	}
 	n.Validator = p.Validator
 	n.Form = p.Form
-	n.basicType = p.basicType
+	n.BasicType = p.BasicType
 	return n
+}
+
+type Fields struct {
+	list    []*Field
+	mapping map[string]bool
+}
+
+func (p *Fields) Add(item *Field) {
+	if p.mapping == nil {
+		p.mapping = map[string]bool{}
+	}
+	if _, ok := p.mapping[item.Type]; ok {
+		return
+	}
+	p.mapping[item.Type] = true
+	p.list = append(p.list, item)
+}
+
+func (p Fields) All() []*Field {
+	return p.list
 }
 
 type Validator struct {

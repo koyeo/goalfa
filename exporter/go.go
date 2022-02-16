@@ -41,8 +41,12 @@ var GoFormatter Formatter = func(s string) (r string, err error) {
 type GoMaker struct {
 }
 
-func (g GoMaker) Make(lang string, exporter *Exporter, methods []*Method) (files []*File, err error) {
-	data := MakeRenderData(lang, methods, GoNamer, GoTyper)
+func (g GoMaker) Lang() string {
+	return Go
+}
+
+func (g GoMaker) Make(methods []*Method) (files []*File, err error) {
+	data := MakeRenderData(g.Lang(), methods, GoNamer, GoTyper)
 	serviceFile := new(File)
 	serviceFile.Name = "service.make.go"
 	serviceFile.Content, err = Render(goServiceTpl, data, GoFormatter)
@@ -57,17 +61,26 @@ const goServiceTpl = `
 package sdk
 
 import "context"
-{% for package in Packages %}
-import "{{ package.From }}" // 自动注入
+{% for package in Packages %}import "{{ package.From }}"
 {% endfor %}
 
-func request(method string, path string) {
+type sdk interface {
+{% for method in Methods %}    {{ method.Name }}(ctx context.Context{% if method.InputType !='' %},in {{ method.InputType }}{% endif %})({% if method.OutputType !='' %}out {{ method.OutputType }},{% endif %} err error) {% if method.Description %}// {{ method.Description }}{% endif %}
+{% endfor %}
+}
+
+var _ sdk = new(SDK)
+
+type SDK struct {
+}
+
+func (s SDK) request(method string, path string) {
 
 }
 
 {% for method in Methods %}
 {% if method.Description %}// {{ method.Name }} {{ method.Description }}{% endif %}
-func {{ method.Name }}(ctx context.Context{% if method.InputType !='' %},in {{ method.InputType }}{% endif %})({% if method.OutputType !='' %}out {{ method.OutputType }},{% endif %} err error){
+func (s SDK){{ method.Name }}(ctx context.Context{% if method.InputType !='' %},in {{ method.InputType }}{% endif %})({% if method.OutputType !='' %}out {{ method.OutputType }},{% endif %} err error){
     // {{ method.Method }} {{ method.Path }}
 	return
 }

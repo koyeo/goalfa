@@ -5,7 +5,7 @@ import "fmt"
 type AngularMaker struct {
 }
 
-var AngularTyper Typer = func(s string, isStruct, isArray bool) string {
+var TsTyper Typer = func(s string, isStruct, isArray bool) string {
 	if isArray {
 		if !isStruct {
 			s = typescriptTypeConverter(s)
@@ -18,8 +18,11 @@ var AngularTyper Typer = func(s string, isStruct, isArray bool) string {
 	return s
 }
 
-func (a AngularMaker) Make(lang string, exporter *Exporter, methods []*Method) (files []*File, err error) {
-	data := MakeRenderData(lang, methods, EmptyNamer, AngularTyper)
+func (a AngularMaker) Lang() string {
+	return Ts
+}
+func (a AngularMaker) Make(methods []*Method) (files []*File, err error) {
+	data := MakeRenderData(a.Lang(), methods, EmptyNamer, TsTyper)
 	for _, v := range data.Structs {
 		for _, vv := range v.Fields {
 			if vv.Param == "" {

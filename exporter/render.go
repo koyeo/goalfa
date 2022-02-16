@@ -136,13 +136,13 @@ func parseNestedType(lang string, field *Field, typer Typer, renderPackages *Ren
 
 func getRenderFieldType(lang string, field *Field, renderPackages *RenderPackages) string {
 	_type := field.Type
-	if field.basicType != nil {
+	if field.BasicType != nil {
 		if lang == Go {
 			renderPackages.add(&RenderPackage{
-				From: field.basicType._package,
+				From: field.BasicType.Package,
 			})
 		} else {
-			lib := field.basicType.getMapping(lang)
+			lib := field.BasicType.getMapping(lang)
 			if lib != nil {
 				_type = lib.Type
 				if lib.Package.From != "" {
