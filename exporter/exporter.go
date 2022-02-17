@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/gozelle/_log"
-	"github.com/gozelle/_log/wrap"
 	"github.com/koyeo/buck/assets"
 	"github.com/koyeo/buck/utils"
 	"github.com/ttacon/chalk"
+	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -75,7 +74,7 @@ func (p Exporter) Run() {
 		p.printAddress()
 		err := engine.Run(p.addr)
 		if err != nil {
-			_log.Panic("接口导出器启动失败", wrap.Error(err))
+			log.Panic("接口导出器启动失败", err)
 		}
 	}()
 }
