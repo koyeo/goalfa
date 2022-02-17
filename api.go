@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/koyeo/buck/binding"
 	"github.com/koyeo/buck/exporter"
+	"github.com/shopspring/decimal"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -42,6 +43,32 @@ func (p *API) SetEngine(engine *gin.Engine) {
 }
 
 func (p *API) SetExporter(addr string, options *exporter.Options) {
+	basicTypes := []exporter.BasicType{
+		{
+			Elem: decimal.Decimal{},
+			Mapping: map[string]exporter.Library{
+				"ts": {Type: "string"},
+			},
+		},
+		{
+			Elem:
+			Html(""),
+			Mapping: map[string]exporter.Library{
+				"ts": {Type: "string"},
+			},
+		},
+		{
+			Elem:
+			Text(""),
+			Mapping: map[string]exporter.Library{
+				"ts": {Type: "string"},
+			},
+		},
+	}
+	if options == nil {
+		options = new(exporter.Options)
+	}
+	options.BasicTypes = append(basicTypes, options.BasicTypes...)
 	p.exporter = exporter.NewExporter(addr, options)
 }
 
@@ -218,17 +245,15 @@ func (p *API) proxyHandler(handler reflect.Value) gin.HandlerFunc {
 			return
 		}
 		if l == 2 {
-			if isBasicType(out[0]) {
-				c.String(http.StatusOK, "%v", out[0].Interface())
-			} else {
-				stringer, ok := out[0].Interface().(fmt.Stringer)
-				if ok {
-					c.String(http.StatusOK, stringer.String())
-				} else {
-					c.JSON(http.StatusOK, out[0].Interface())
-					return
-				}
+			switch out[0].Interface().(type) {
+			case Html:
+				c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(out[0].Interface().(Html)))
+			case Text:
+				c.Data(http.StatusOK, "text/plain; charset=utf-8", []byte(out[0].Interface().(Text)))
+			default:
+				c.JSON(http.StatusOK, out[0].Interface())
 			}
+			return
 		} else {
 			c.String(http.StatusOK, "")
 			return

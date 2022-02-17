@@ -6,7 +6,6 @@ import (
 	"github.com/koyeo/buck"
 	"github.com/koyeo/buck/example/foo/service"
 	"github.com/koyeo/buck/exporter"
-	"github.com/shopspring/decimal"
 )
 
 func main() {
@@ -39,12 +38,6 @@ func main() {
 			"python": exporter.GoMaker{},
 		},
 		BasicTypes: []exporter.BasicType{
-			{
-				Elem: decimal.Decimal{},
-				Mapping: map[string]exporter.Library{
-					"ts": {Type: "string"},
-				},
-			},
 			{
 				Elem: service.CID{},
 				Mapping: map[string]exporter.Library{

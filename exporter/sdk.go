@@ -24,29 +24,18 @@ type SDK struct {
 	methods []*Method
 }
 
-func (p SDK) Make(lang, pkg string) ([]byte, error) {
-	var maker Maker
-	switch lang {
-	case "go":
-		maker = new(GoMaker)
-	case "axios":
-		maker = new(AxiosMaker)
-	case "angular":
-		maker = new(AngularMaker)
-	default:
-		return nil, fmt.Errorf("unsupport sdk lang: '%s'", lang)
+func (p SDK) Make(makers map[string]Maker, lang, pkg string) ([]byte, error) {
+	maker, ok := makers[lang]
+	if !ok {
+		return nil, fmt.Errorf("target '%s' maker not found", lang)
 	}
 	var methods []*Method
 	for _, v := range p.methods {
 		methods = append(methods, v.Fork())
 	}
-	files, err := maker.Make(methods)
+	files, err := maker.Make(pkg,methods)
 	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(files)
-}
-
-func (p SDK) make() {
-
 }

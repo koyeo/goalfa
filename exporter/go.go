@@ -45,7 +45,7 @@ func (g GoMaker) Lang() string {
 	return Go
 }
 
-func (g GoMaker) Make(methods []*Method) (files []*File, err error) {
+func (g GoMaker) Make(pkg string, methods []*Method) (files []*File, err error) {
 	data := MakeRenderData(g.Lang(), methods, GoNamer, GoTyper)
 	serviceFile := new(File)
 	serviceFile.Name = "service.make.go"
@@ -72,6 +72,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"reflect"
 )
 
@@ -102,9 +103,7 @@ func (s *SDK) RemoveHeader(key string) {
 	delete(s.headers, key)
 }
 
-func (s SDK) request(method string, path string, data interface{}, result interface{}) (err error) {
-	//params := url.Values{}
-	//params.Add()
+func (s SDK) request(ctx context.Context, method string, path string, data interface{}, result interface{}) (err error) {
 	var req *http.Request
 	remote := fmt.Sprintf("%s%s", s.host, path)
 	switch method {
@@ -139,17 +138,17 @@ func (s SDK) request(method string, path string, data interface{}, result interf
 			err = fmt.Errorf("build request error: %s", err)
 			return
 		}
+		req.Header.Add("Content-Type", "application/json")
 	default:
 		err = fmt.Errorf("unsupport method: '%s'", method)
 		return
 	}
-	client := &http.Client{
-	}
+	client := &http.Client{}
 	
 	for k, v := range s.headers {
 		req.Header.Add(k, v)
 	}
-	
+	req = req.WithContext(ctx)
 	res, err := client.Do(req)
 	if err != nil {
 		err = fmt.Errorf("exec request error: %s", err)
@@ -164,7 +163,7 @@ func (s SDK) request(method string, path string, data interface{}, result interf
 		err = fmt.Errorf("read response body error: %s", err)
 		return
 	}
-	err = s.bindResult(body, result)
+	err = s.bindResult(res.Header, body, result)
 	if err != nil {
 		err = fmt.Errorf("bind result error: %s", err)
 		return
@@ -172,27 +171,32 @@ func (s SDK) request(method string, path string, data interface{}, result interf
 	return
 }
 
-func (s SDK) bindResult(body []byte, result interface{}) (err error) {
+func (s SDK) bindResult(header http.Header, body []byte, result interface{}) (err error) {
 	if result == nil {
 		return
 	}
-	rv := reflect.ValueOf(result)
-	if rv.Kind() != reflect.Ptr {
-		err = fmt.Errorf("result only accept ptr")
-		return
-	}
-	et := rv.Type().Elem()
-	switch et.Kind() {
-	case reflect.Struct:
+	contentType := header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "application/json") {
 		err = json.Unmarshal(body, result)
 		if err != nil {
 			err = fmt.Errorf("unmarshal data to result error: %s", err)
 			return
 		}
-	case reflect.String:
-		rv.Elem().SetString(string(body))
-	default:
-		err = fmt.Errorf("unsupport result type: %s", rv.Type())
+	} else {
+		rt := reflect.ValueOf(result)
+		for {
+			if rt.Kind() != reflect.Ptr {
+				break
+			}
+			rt = rt.Elem()
+		}
+		switch rt.Kind() {
+		case reflect.String:
+			rt.SetString(string(body))
+		default:
+			err = fmt.Errorf("unsupported response type: '%s'", contentType)
+		}
+		return
 	}
 	return
 }
@@ -201,7 +205,7 @@ func (s SDK) bindResult(body []byte, result interface{}) (err error) {
 {% if method.Description %}// {{ method.Name }} {{ method.Description }}{% endif %}
 func (s SDK){{ method.Name }}(ctx context.Context{% if method.InputType !='' %},in {{ method.InputType }}{% endif %})({% if method.OutputType !='' %}out {{ method.OutputType }},{% endif %} err error){
     {% if method.OutputType !='' %}{% if method.OutputStruct %}out = new({{ _trimPrefix(method.OutputType,"*") }}){% endif %}{% endif %}
-    err = s.request("{{ method.Method }}", "{{ method.Path }}",{% if method.InputType !='' %}in{% else %}nil{% endif %}{% if method.OutputType !='' %},{% if not method.OutputStruct %}&{% endif %}out{% else %}nil{% endif %})
+    err = s.request(ctx, "{{ method.Method }}", "{{ method.Path }}",{% if method.InputType !='' %}in{% else %}nil{% endif %}{% if method.OutputType !='' %},{% if not method.OutputStruct %}&{% endif %}out{% else %}nil{% endif %})
     if err != nil{
 		return
     }

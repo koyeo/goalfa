@@ -15,6 +15,9 @@ const (
 	Put    = "PUT"
 )
 
+type Html string
+type Text string
+
 type Register interface {
 	DELETE(path string, handles ...gin.HandlerFunc) gin.IRoutes
 	GET(path string, handles ...gin.HandlerFunc) gin.IRoutes
@@ -98,4 +101,3 @@ type Value struct {
 	value   interface{}
 	headers map[string]string
 }
-

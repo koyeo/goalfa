@@ -18,6 +18,7 @@ import (
 func NewExporter(addr string, options *Options) *Exporter {
 	e := &Exporter{addr: addr, options: options}
 	e.initBasicTypes()
+	e.initMakers()
 	return e
 }
 
@@ -30,6 +31,7 @@ type Exporter struct {
 	methods []*Method
 	basics  map[string]*BasicType
 	models  []*Field
+	makers  map[string]Maker
 }
 
 func (p *Exporter) Init(version string, methods []*Method, models *Fields) {
@@ -94,7 +96,7 @@ func (p Exporter) printAddress() {
 // 导出 SDK 代码
 func (p Exporter) sdkHandler(c *gin.Context) {
 	sdk := NewSDK(p.methods)
-	data, err := sdk.Make(c.Query("lang"), c.Query("package"))
+	data, err := sdk.Make(p.makers, c.Query("lang"), c.Query("package"))
 	if err != nil {
 		_ = c.Error(err)
 		return
@@ -159,7 +161,9 @@ func (p *Exporter) initBasicTypes() {
 	if p.options == nil {
 		return
 	}
-	for _, v := range p.options.BasicTypes {
+	basicTypes := []BasicType{}
+	basicTypes = append(basicTypes, p.options.BasicTypes...)
+	for _, v := range basicTypes {
 		if p.basics == nil {
 			p.basics = map[string]*BasicType{}
 		}
@@ -168,6 +172,18 @@ func (p *Exporter) initBasicTypes() {
 		basicType.Package = r.Type().PkgPath()
 		basicType.Type = r.Type().String()
 		p.basics[fmt.Sprintf("%s@%s", basicType.Package, r.Type().String())] = basicType
+	}
+}
+
+func (p *Exporter) initMakers() {
+	p.makers = map[string]Maker{
+		"go":      GoMaker{},
+		"angular": AngularMaker{},
+	}
+	if p.options != nil {
+		for k, v := range p.options.Makers {
+			p.makers[k] = v
+		}
 	}
 }
 
