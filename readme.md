@@ -196,21 +196,21 @@ Router 用来描述服务的 API 匹配关系，同时可以在 Router 中定义
 
 ```go
 type UserRouter struct {
-service UserService
+    service UserService
 }
 
 func (u UserRouter) Routers() []buck.Route {
-return []buck.Route{
-{
-Prefix: "/api",             // 定义路由分组前缀
-Middleware: SomeMiddleware, // 定义分组中间件
-Children: []buck.Route{
-{ Handler: p.service.Register },               // 默认采用 Post 方法，Handler 方法名作为路径    
-{ Method: buck.Get, Handler: p.service.Ping }, // 指定请求方法
-{ Path: "/login", Handler: p.service.Login },  // 指定请求路径
-},
-}    
-}   
+    return []buck.Route{
+        {
+            Prefix: "/api",             // 定义路由分组前缀
+            Middleware: SomeMiddleware, // 定义分组中间件
+            Children: []buck.Route{
+                { Handler: p.service.Register },               // 默认采用 Post 方法，Handler 方法名作为路径    
+                { Method: buck.Get, Handler: p.service.Ping }, // 指定请求方法
+                { Path: "/login", Handler: p.service.Login },  // 指定请求路径
+            },
+        }    
+    }   
 }
 ```
 
