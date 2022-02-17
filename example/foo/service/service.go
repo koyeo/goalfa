@@ -42,9 +42,9 @@ type Order struct {
 
 type Shop struct {
 	Name      string     `json:"name,omitempty" label:"店铺名称"`
-	Manager   *Member    `json:"manager,omitempty" label:"店铺管理员"`
-	Employees []*Member  `json:"employees,omitempty" label:"店铺其他雇员"`
-	Products  []*Product `json:"products,omitempty" label:"店铺商品列表"`
+	Manager   *Member    `json:"manager,omitempty" label:"管理员"`
+	Employees []*Member  `json:"employees,omitempty" label:"其他雇员"`
+	Products  []*Product `json:"products,omitempty" label:"商品列表"`
 }
 
 type Member struct {
@@ -58,7 +58,6 @@ type Product struct {
 }
 
 type Spec struct {
-	//Cid       CID             `json:"cid"`
 	Title     string          `json:"title,omitempty" label:"规格标题" json:"title,omitempty"`
 	Inventory int             `json:"inventory,omitempty" label:"规格库存" json:"inventory,omitempty"`
 	Price     decimal.Decimal `label:"规格价格" json:"price"`

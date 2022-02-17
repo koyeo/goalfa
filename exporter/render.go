@@ -3,6 +3,7 @@ package exporter
 import (
 	"github.com/fatih/structs"
 	"github.com/flosch/pongo2/v5"
+	"strings"
 )
 
 type RenderData struct {
@@ -12,12 +13,13 @@ type RenderData struct {
 }
 
 type RenderMethod struct {
-	Name        string
-	InputType   string
-	OutputType  string
-	Description string
-	Method      string
-	Path        string
+	Name         string
+	InputType    string
+	OutputType   string
+	OutputStruct bool
+	Description  string
+	Method       string
+	Path         string
 }
 
 type RenderStruct struct {
@@ -112,6 +114,7 @@ func makeRenderMethod(lang string, method *Method, namer Namer, typer Typer, ren
 	}
 	if method.Output != nil {
 		renderMethod.OutputType = makeMethodIOName(lang, method.Output, typer, renderPackages)
+		renderMethod.OutputStruct = method.Output.Struct
 	}
 	return
 }
@@ -210,6 +213,7 @@ func Render(tpl string, data interface{}, formatter Formatter) (result string, e
 		return
 	}
 	ctx := structs.Map(data)
+	ctx["_trimPrefix"] = strings.TrimPrefix
 	result, err = _tpl.Execute(ctx)
 	if err != nil {
 		return
