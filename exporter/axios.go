@@ -7,6 +7,6 @@ func (a AxiosMaker) Lang() string {
 	return Ts
 }
 
-func (a AxiosMaker) Make( methods []*Method) (files []*File, err error) {
+func (a AxiosMaker) Make(pkg string, methods []*Method) (files []*File, err error) {
 	return
 }

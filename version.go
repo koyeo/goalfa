@@ -1,4 +1,3 @@
 package buck
 
-
-type Version string
+const VERSION = "1.0"

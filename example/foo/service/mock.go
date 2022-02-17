@@ -2,10 +2,42 @@ package service
 
 import (
 	"context"
+	"github.com/koyeo/buck"
 	"github.com/shopspring/decimal"
 )
 
 type FooMock struct {
+}
+
+func (f FooMock) GetHtml(ctx context.Context) (out buck.Html, err error) {
+	out = "<h1>Hello world</h1>"
+	return
+}
+
+func (f FooMock) GetText(ctx context.Context) (out buck.Text, err error) {
+	out = "plain text"
+	return
+}
+
+func (f FooMock) GetDecimal(ctx context.Context) (out decimal.Decimal, err error) {
+	out = decimal.NewFromFloat(3.14156)
+	return
+}
+
+func (f FooMock) GetBool(ctx context.Context) (out bool, err error) {
+	out = true
+	return
+}
+
+func (f FooMock) GetInt(ctx context.Context) (out int, err error) {
+	out = 1438
+	return
+}
+
+func (f FooMock) GetInt32(ctx context.Context) (out *int, err error) {
+	a := 123
+	out = &a
+	return
 }
 
 func (f FooMock) PostShop(ctx context.Context, in *Shop) (out *Shop, err error) {
@@ -19,6 +51,9 @@ func (f FooMock) Ping2(ctx context.Context) (out decimal.Decimal, err error) {
 }
 
 func (f FooMock) TestGetArray(ctx context.Context) (out [][]string, err error) {
+	out = [][]string{
+		{"a", "n"},
+	}
 	return
 }
 

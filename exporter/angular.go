@@ -21,7 +21,7 @@ var TsTyper Typer = func(s string, isStruct, isArray bool) string {
 func (a AngularMaker) Lang() string {
 	return Ts
 }
-func (a AngularMaker) Make(methods []*Method) (files []*File, err error) {
+func (a AngularMaker) Make(pkg string, methods []*Method) (files []*File, err error) {
 	data := MakeRenderData(a.Lang(), methods, EmptyNamer, TsTyper)
 	for _, v := range data.Structs {
 		for _, vv := range v.Fields {

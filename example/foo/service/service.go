@@ -2,11 +2,18 @@ package service
 
 import (
 	"context"
+	"github.com/koyeo/buck"
 	"github.com/shopspring/decimal"
 )
 
 type FooService interface {
 	Ping(ctx context.Context) (out string, err error)
+	GetHtml(ctx context.Context) (out buck.Html, err error)
+	GetText(ctx context.Context) (out buck.Text, err error)
+	GetInt(ctx context.Context) (out int, err error)
+	GetInt32(ctx context.Context) (out *int, err error)
+	GetDecimal(ctx context.Context) (out decimal.Decimal, err error)
+	GetBool(ctx context.Context) (out bool, err error)
 	Ping2(ctx context.Context) (out decimal.Decimal, err error)
 	AddPost(ctx context.Context, in Post) (out Post, err error)
 	QueryPost(ctx context.Context, in QueryPostIn) (out []Post, err error)
