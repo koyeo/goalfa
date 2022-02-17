@@ -25,7 +25,7 @@ go get -u github.com/koyeo/buck/cmd/buck
 
 ## 快速上手
 
-参考 Foo 用例，[查看源码](/koyeo/buck/tree/master/example/foo)。
+参考 Foo 用例，[查看源码](https://github.com/koyeo/buck/tree/master/example/foo)。
 
 ### 入口文件
 
