@@ -6,6 +6,7 @@ import (
 	"github.com/koyeo/buck"
 	"github.com/koyeo/buck/example/foo/service"
 	"github.com/koyeo/buck/exporter"
+	"github.com/shopspring/decimal"
 )
 
 func main() {
@@ -28,10 +29,27 @@ func main() {
 	// API 导出器配置
 	api.SetExporter(":9090", &exporter.Options{
 		Project: "Foo",
-		Envs: []*exporter.Env{
+		Envs: []exporter.Env{
 			{
 				Name: "本地测试",
 				Host: "http://localhost:8080",
+			},
+		},
+		Makers: map[string]exporter.Maker{
+			"python": exporter.GoMaker{},
+		},
+		BasicTypes: []exporter.BasicType{
+			{
+				Elem: decimal.Decimal{},
+				Mapping: map[string]exporter.Library{
+					"ts": {Type: "string"},
+				},
+			},
+			{
+				Elem: service.CID{},
+				Mapping: map[string]exporter.Library{
+					"ts": {Type: "string"},
+				},
 			},
 		},
 	})

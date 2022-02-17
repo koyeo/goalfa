@@ -25,6 +25,8 @@ type API struct {
 	routeTable *RouteTable
 	exporter   *exporter.Exporter
 	methods    []*exporter.Method
+	basics     *exporter.BasicTypes
+	models     *exporter.Fields
 }
 
 func (p *API) SetVersion(version string) {
@@ -63,7 +65,7 @@ func (p *API) Run(addr string) {
 		}
 	}
 	if p.exporter != nil {
-		p.makeExporter()
+		p.exporter.Init(p.version, p.methods, p.models)
 		p.exporter.Run()
 	}
 	err = p.engine.Run(addr)
@@ -301,12 +303,6 @@ func (p *API) parseHandlerInfoValue(v reflect.Value) HandlerInfo {
 	}
 }
 
-// 生成 Exporter 信息
-func (p API) makeExporter() {
-	p.exporter.SetVersion(p.version)
-	p.exporter.Methods = p.methods
-}
-
 func (p *API) addMethod(method, path, description string, info HandlerInfo, handler reflect.Value) {
 	if p.exporter == nil {
 		return
@@ -318,10 +314,10 @@ func (p *API) addMethod(method, path, description string, info HandlerInfo, hand
 		Description: description,
 	}
 	if handler.Type().NumIn() > 1 {
-		m.Input = exporter.ReflectFields(fmt.Sprintf("%sIn", m.Name), "", nil, handler.Type().In(1))
+		m.Input = p.exporter.ReflectFields("", "", "", nil, handler.Type().In(1))
 	}
 	if handler.Type().NumOut() > 1 {
-		m.Output = exporter.ReflectFields(fmt.Sprintf("%sOut", m.Name), "", nil, handler.Type().Out(0))
+		m.Output = p.exporter.ReflectFields("", "", "", nil, handler.Type().Out(0))
 	}
 	p.methods = append(p.methods, m)
 }

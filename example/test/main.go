@@ -22,7 +22,7 @@ func main() {
 	api.AddRouter(service.NewUserRouter(new(service.UserImplService)))
 	api.SetExporter(":8090", &exporter.Options{
 		Project: "测试项目",
-		Envs: []*exporter.Env{
+		Envs: []exporter.Env{
 			{
 				Name: "本地测试",
 				Host: "http://localhost:8088",
