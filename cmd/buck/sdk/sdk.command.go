@@ -24,8 +24,8 @@ var Command = &cobra.Command{
 
 func init() {
 	Command.Flags().StringP("address", "a", "", "指定服务地址，如：http://localhost:8090")
-	Command.Flags().StringP("lang", "l", "", "指定 SDK 语言，可选值：go、angular、axios")
-	Command.Flags().StringP("target", "t", "", "指定 SDK 存放目录")
+	Command.Flags().StringP("target", "t", "", "指定 SDK 生成目标，可选值：go、angular、axios")
+	Command.Flags().StringP("output", "o", "", "指定 SDK 存放目录")
 	Command.Flags().StringP("package", "p", "", "指定 SDK 包名称")
 	Command.Flags().BoolP("yes", "y", false, "如果指定 target 目录不存在，是否自动创建")
 }
@@ -39,20 +39,20 @@ func run(cmd *cobra.Command) (err error) {
 		err = fmt.Errorf("请通过 --address 选项指定服务地址, ，如：--address http://localhost:8090")
 		return
 	}
-	lang, err := cmd.Flags().GetString("lang")
-	if err != nil {
-		return
-	}
-	if lang == "" {
-		err = fmt.Errorf("请通过 --lang 选项指定 SDK 语言, , 如 --lang go")
-		return
-	}
 	target, err := cmd.Flags().GetString("target")
 	if err != nil {
 		return
 	}
 	if target == "" {
-		err = fmt.Errorf("请通过 --target 选项指定 SDK 存放目录, 如 --target ./sdk")
+		err = fmt.Errorf("请通过 --target 选项指定 SDK 语言, , 如 --lang go")
+		return
+	}
+	output, err := cmd.Flags().GetString("output")
+	if err != nil {
+		return
+	}
+	if output == "" {
+		err = fmt.Errorf("请通过 --output 选项指定 SDK 存放目录, 如 --target ./sdk")
 		return
 	}
 	pkg, err := cmd.Flags().GetString("package")
@@ -67,16 +67,16 @@ func run(cmd *cobra.Command) (err error) {
 	if err != nil {
 		return
 	}
-	files, err := request(address, lang, pkg)
+	files, err := request(address, target, pkg)
 	if err != nil {
 		return
 	}
-	err = askMakeTarget(target, yes)
+	err = askMakeOutputDir(output, yes)
 	if err != nil {
 		return
 	}
 	for _, v := range files {
-		path := filepath.Join(target, v.Name)
+		path := filepath.Join(output, v.Name)
 		err = writeFile(path, []byte(v.Content))
 		if err != nil {
 			err = fmt.Errorf("文件 '%s' 写入错误: %s", v.Name, err)
@@ -103,7 +103,7 @@ func request(address, lang, pkg string) (files []*exporter.File, err error) {
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	
+
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		err = fmt.Errorf("SDK 下载读取错误: %s", err)
@@ -117,7 +117,7 @@ func request(address, lang, pkg string) (files []*exporter.File, err error) {
 	return
 }
 
-func askMakeTarget(target string, yes bool) (err error) {
+func askMakeOutputDir(target string, yes bool) (err error) {
 	if dirExist(target) {
 		return
 	}

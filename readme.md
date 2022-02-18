@@ -170,6 +170,21 @@ func (f FooMock) QueryPost(ctx context.Context, in QueryPostIn) (out []Post, err
 
 ```
 
+## SDK 生成
+以本例文档服务监听的 9090 端口为例。
+
+**生成 Go SDK:**
+
+```
+$ buck sdk --address 127.0.0.0:9090 --output ./sdk  --package test-sdk --lang go -y
+```
+
+**生成 Angular SDK:**
+
+```
+$ buck sdk --address 127.0.0.0:9090 --output ./sdk  --package test-sdk --lang go -y
+```
+
 ## 服务方法
 
 **格式说明:**
