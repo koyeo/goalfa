@@ -41,6 +41,7 @@ func (a AngularMaker) Make(pkg string, methods []*Method) (files []*File, err er
 }
 
 const angularServiceTpl = `import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
+import {Observable} from 'rxjs';
 
 export class APIService {
 
@@ -53,11 +54,12 @@ export class APIService {
     }
 {% for method in Methods %}
 {% if method.Description %}    // {{ method.Description }}{% endif %}
-    {{ method.Name }}({% if method.InputType !='' %}params:{{ method.InputType }}, {% endif %}options?:HttpOptions){% if method.OutputType !='' %}:{{ method.OutputType }}{% endif %} { {% if method.InputType !='' %}
+    {{ method.Name }}({% if method.InputType !='' %}params:{{ method.InputType }}, {% endif %}options?:HttpOptions):{% if method.OutputType !='' %}Observable<{{ method.OutputType }}>{% else %}Observable<null>{% endif %}{ {% if method.InputType !='' %}
 	    if(!options){
            options = {};
 	    }
-	    options.params = params;{% endif %}
+		{% if  method.Method == 'GET' or method.Method == 'DELETE' %}  // @ts-ignore
+		  options.params = params;{% else %}  options.body = params;{% endif %}{% endif %}
 	    return this.client.request('{{ method.Method }}', this.host+'{{ method.Path }}', options)
     }{% endfor %}
 }
