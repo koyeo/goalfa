@@ -14,7 +14,7 @@ type FooRouter struct {
 
 func (f FooRouter) Routes() []buck.Route {
 	return []buck.Route{
-		{Method: buck.Get, Handler: f.service.Ping, Description: "测试"},
+		{Method: buck.Get, Handler: f.service.Ping, Description: "测试", Extra: "customer(color,tag):customerId,cluster(bool,mini):clusterId"},
 		{Method: buck.Get, Handler: f.service.GetHtml},
 		{Method: buck.Get, Handler: f.service.GetText},
 		{Method: buck.Get, Handler: f.service.GetInt},
@@ -22,7 +22,7 @@ func (f FooRouter) Routes() []buck.Route {
 		{Method: buck.Get, Handler: f.service.QueryPost},
 		{Method: buck.Get, Handler: f.service.GetDecimal},
 		{Method: buck.Get, Handler: f.service.GetBool},
-		{Handler: f.service.AddPost},
+		{Handler: f.service.AddPost, Extra: "customerId,clusterId"},
 		{Handler: f.service.TestGetArray},
 		{Handler: f.service.TestPostArray},
 		{Handler: f.service.Ping2},

@@ -191,7 +191,11 @@ func (p *Exporter) ReflectFields(name, param, label string, validator *Validator
 	t = utils.TypeElem(t)
 	field = new(Field)
 	field.Name = name
-	field.Param = param
+	if param == "" {
+		field.Param = name
+	} else {
+		field.Param = param
+	}
 	field.Label = label
 	basicType := p.getBasicType(t)
 	if basicType != nil {

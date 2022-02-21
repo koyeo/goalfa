@@ -62,7 +62,7 @@ func main() {
 	// API 导出器配置
 	api.SetExporter(":9090", &exporter.Options{
 		Project: "Foo",
-		Envs: []*exporter.Env{
+		Envs: []exporter.Env{
 			{
 				Name: "本地测试",
 				Host: "http://localhost:8080",
