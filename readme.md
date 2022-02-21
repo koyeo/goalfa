@@ -236,6 +236,16 @@ func (u UserRouter) Routers() []buck.Route {
 | label     | 用于备注字段在文档中的显示名称                      |
 | validator | 用于标注字段的校验规则，如 `validator="required"` |
 
+## Context Wrapper
+
+通过 buck 实例调用 SetContextWrapper 方法，可以为引擎注入一个服务的 Context 包装器，以获得服务需要的上下文，如登录状态等。
+
+```go
+api.SetContextWrapper(function(c *gin.Context)(context.Context, error){
+	return context.Background(), nil
+})
+```
+
 ## 文档工具截图
 
 ![](images/exporter2.png)

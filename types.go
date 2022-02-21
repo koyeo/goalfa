@@ -1,6 +1,7 @@
 package buck
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/olekukonko/tablewriter"
@@ -102,3 +103,5 @@ type Value struct {
 	value   interface{}
 	headers map[string]string
 }
+
+type ContextWrapper func(ctx *gin.Context) (context.Context, error)

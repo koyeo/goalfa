@@ -7,6 +7,7 @@ import (
 	"github.com/koyeo/buck/binding"
 	"github.com/koyeo/buck/exporter"
 	"github.com/shopspring/decimal"
+	"log"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -20,14 +21,15 @@ func New() *API {
 }
 
 type API struct {
-	version    string
-	routers    []Router
-	engine     *gin.Engine
-	routeTable *RouteTable
-	exporter   *exporter.Exporter
-	methods    []*exporter.Method
-	basics     *exporter.BasicTypes
-	models     *exporter.Fields
+	version        string
+	routers        []Router
+	engine         *gin.Engine
+	routeTable     *RouteTable
+	exporter       *exporter.Exporter
+	methods        []*exporter.Method
+	basics         *exporter.BasicTypes
+	models         *exporter.Fields
+	contextWrapper ContextWrapper
 }
 
 func (p *API) SetVersion(version string) {
@@ -40,6 +42,10 @@ func (p *API) AddRouter(router ...Router) {
 
 func (p *API) SetEngine(engine *gin.Engine) {
 	p.engine = engine
+}
+
+func (p *API) SetContextWrapper(contextWrapper ContextWrapper) {
+	p.contextWrapper = contextWrapper
 }
 
 func (p *API) SetExporter(addr string, options *exporter.Options) {
@@ -222,14 +228,29 @@ func (p *API) registerRoutes(register Register, prefix string, routes []Route) (
 func (p *API) proxyHandler(handler reflect.Value) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var out []reflect.Value
-		ctx := context.Background()
+		var ctx context.Context
+		if p.contextWrapper == nil {
+			ctx = context.Background()
+		} else {
+			var err error
+			ctx, err = p.contextWrapper(c)
+			if err != nil {
+				e := c.Error(err)
+				if e != nil {
+					log.Printf("c.Error(%s) error: %s", err, e)
+				}
+				return
+			}
+		}
 		if handler.Type().NumIn() == 2 {
 			var in reflect.Value
 			var err error
 			in, err = bind(c, handler.Type().In(1))
 			if err != nil {
-				// TODO 响应 Error 报错
-				c.Error(err)
+				e := c.Error(err)
+				if e != nil {
+					log.Printf("c.Error(%s) error: %s", err, e)
+				}
 				return
 			}
 			out = handler.Call([]reflect.Value{reflect.ValueOf(ctx), in})
