@@ -1,6 +1,6 @@
 # Buck
 
-为了降低前后端交付成本的 API 框架。
+为了降低前后端交付成本的 API 框架, 支持服务抽象，命令行生成多语言 SDK。
 
 ## 特性
 
@@ -168,6 +168,21 @@ func (f FooMock) QueryPost(ctx context.Context, in QueryPostIn) (out []Post, err
 	return
 }
 
+```
+
+## SDK 生成
+以本例文档服务监听的 9090 端口为例。
+
+**生成 Go SDK:**
+
+```
+$ buck sdk --address 127.0.0.0:9090 --output ./sdk  --package test-sdk --lang go -y
+```
+
+**生成 Angular SDK:**
+
+```
+$ buck sdk --address 127.0.0.0:9090 --output ./sdk  --package test-sdk --lang go -y
 ```
 
 ## 服务方法

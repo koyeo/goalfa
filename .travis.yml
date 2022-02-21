@@ -1,0 +1,3 @@
+language: golang
+script:
+  - go build -o buck cmd/buck/buck.go

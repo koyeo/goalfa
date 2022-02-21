@@ -1,31 +1,15 @@
 package main
 
 import (
-	"fmt"
-	"github.com/koyeo/buck/assets"
 	"github.com/koyeo/buck/cmd/buck/sdk"
 	"github.com/spf13/cobra"
-	"log"
-	"net/http"
-	"os"
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "buck",
-	Short: "Hugo is a very fast static site generator",
-	Long: `A Fast and Flexible Static Site Generator built with
-                love by spf13 and friends in Go.
-                Complete documentation is available at http://hugo.spf13.com`,
+	Use:  "buck",
+	Long: `用于辅助构建 Buck SDK 的命令行工具`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
-		fmt.Println("Hello world!")
-		fs := http.FileServer(assets.Assets)
-		http.Handle("/", fs)
-		log.Println("Listening on :3000...")
-		err := http.ListenAndServe(":3000", nil)
-		if err != nil {
-			log.Fatal(err)
-		}
+		_ = cmd.Help()
 	},
 }
 
@@ -34,7 +18,6 @@ func main() {
 		sdk.Command,
 	)
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 }
